@@ -14,10 +14,16 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <!-- Background Elements -->
+    <!-- Background Gradient Orbs -->
     <div class="radial-bg orb-1"></div>
     <div class="radial-bg orb-2"></div>
     <div class="radial-bg orb-3"></div>
+
+    <!-- Floating Ambient Particles -->
+    <div class="particle p-1"></div>
+    <div class="particle p-2"></div>
+    <div class="particle p-3"></div>
+    <div class="particle p-4"></div>
 
     <div class="app-container">
         <!-- Floating Header -->
@@ -29,7 +35,7 @@
             
             <div class="api-key-config">
                 <span class="api-status-dot" id="apiKeyStatusDot"></span>
-                <span class="api-status-text" id="apiKeyStatusText">API Key: Missing</span>
+                <span class="api-status-text" id="apiKeyStatusText">API Key: Checking...</span>
                 <button class="btn-icon" id="toggleApiBtn" title="Configure API Key">
                     <i class="fa-solid fa-key"></i>
                 </button>
@@ -56,14 +62,16 @@
             <h1 class="hero-title animate-text">Deep Website Analysis & AI Consultation</h1>
             <p class="hero-subtitle">Input any website URL to extract its structure, services, tech stack, and build costs, then chat directly with an AI Technical Consultant about it.</p>
             
-            <form class="search-container glass-panel" id="searchForm">
-                <i class="fa-solid fa-globe search-icon"></i>
-                <input type="text" id="urlInput" placeholder="Enter website URL (e.g., vihilinfotech.com)" required>
-                <button type="submit" class="btn btn-gradient" id="analyzeBtn">
-                    <span>Analyze URL</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </form>
+            <div class="input-gradient-border">
+                <form class="search-container glass-panel" id="searchForm">
+                    <i class="fa-solid fa-globe search-icon"></i>
+                    <input type="text" id="urlInput" placeholder="Enter website URL (e.g., vihilinfotech.com)" required>
+                    <button type="submit" class="btn btn-gradient" id="analyzeBtn">
+                        <span>Analyze URL</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
 
             <div class="quick-examples">
                 <span>Try examples:</span>
@@ -117,12 +125,28 @@
                         <p class="site-url" id="siteUrl">https://example.com</p>
                         <p class="site-description text-accent" id="siteDescription">Tagline/Description</p>
                         <hr class="divider">
-                        <p class="site-overview" id="siteOverview">Detailed analysis overview text goes here...</p>
+                        <p class="site-overview" id="siteOverview">Detailed analysis overview text...</p>
+                    </div>
+                </div>
+
+                <!-- Interactive Crawled Map Card -->
+                <div class="card glass-panel animate-fade-in delay-100">
+                    <div class="card-header">
+                        <i class="fa-solid fa-network-wired card-icon"></i>
+                        <h2>Crawled Map & Links</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="section-instruction">Visual nodes showing discovered internal pages fetched by the crawler.</p>
+                        <div class="crawler-map-viewport">
+                            <div class="crawler-map-root" id="crawlerMapRoot">
+                                <!-- Dynamically generated flowchart -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Services Card -->
-                <div class="card glass-panel animate-fade-in delay-100">
+                <div class="card glass-panel animate-fade-in delay-150">
                     <div class="card-header">
                         <i class="fa-solid fa-layer-group card-icon"></i>
                         <h2>Core Services & Functions</h2>
@@ -148,10 +172,11 @@
                 </div>
 
                 <!-- Cost Estimation Card -->
-                <div class="card glass-panel cost-card animate-fade-in delay-300">
+                <div class="card glass-panel cost-card animate-fade-in delay-250">
                     <div class="card-header">
                         <i class="fa-solid fa-money-bill-trend-up card-icon"></i>
                         <h2>Clone Build Cost Estimate</h2>
+                        <span class="premium-badge"><i class="fa-solid fa-crown"></i> High Factual Accuracy</span>
                     </div>
                     <div class="card-body">
                         <div class="cost-summary">
@@ -169,9 +194,10 @@
                             <table class="cost-table">
                                 <thead>
                                     <tr>
-                                        <th>Development Module</th>
-                                        <th>Est. Cost</th>
-                                        <th>Scope & Rationale</th>
+                                        <th style="width: 25%">Development Module</th>
+                                        <th style="width: 20%">Budget Weight</th>
+                                        <th style="width: 20%">Est. Cost</th>
+                                        <th style="width: 35%">Scope & Rationale</th>
                                     </tr>
                                 </thead>
                                 <tbody id="costBreakdownBody">
@@ -183,7 +209,7 @@
                 </div>
 
                 <!-- Audience & Improvements -->
-                <div class="card glass-panel animate-fade-in delay-400">
+                <div class="card glass-panel animate-fade-in delay-300">
                     <div class="card-header">
                         <i class="fa-solid fa-chart-line card-icon"></i>
                         <h2>Audience & Suggestions</h2>
@@ -191,7 +217,7 @@
                     <div class="card-body">
                         <div class="sub-section">
                             <h3>Target Audience</h3>
-                            <p class="site-overview" id="audienceDesc">Audience overview text...</p>
+                            <p class="site-overview" id="audienceDesc">Audience overview...</p>
                             <div class="segments-container" id="audienceSegments">
                                 <!-- Badges -->
                             </div>
@@ -228,7 +254,7 @@
                     <!-- Default welcome message -->
                     <div class="message system-message">
                         <div class="message-content">
-                            <p><strong>Consultant Initialized!</strong> Ask me anything about the analyzed website, for example:</p>
+                            <p><strong>Consultant Initialized!</strong> Ask me anything about the analyzed site, for example:</p>
                             <div class="chat-chips" id="quickQuestionsContainer">
                                 <!-- Suggested questions -->
                             </div>

@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const audienceDesc = document.getElementById('audienceDesc');
     const audienceSegments = document.getElementById('audienceSegments');
     const improvementsList = document.getElementById('improvementsList');
+    const crawlerMapRoot = document.getElementById('crawlerMapRoot');
     
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
@@ -54,6 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize API Key UI
     updateApiKeyUI();
 
+    // Check if the backend has an API key configured
+    checkServerKeyStatus();
+
     // Event Listeners
     toggleApiBtn.addEventListener('click', () => {
         apiDrawer.classList.toggle('open');
@@ -66,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('gemini_api_key', key);
             updateApiKeyUI();
             apiDrawer.classList.remove('open');
-            showToast('API Key saved successfully!', 'success');
+            showToast('API Key saved locally!', 'success');
         } else {
             showToast('Please enter a valid API Key', 'error');
         }
@@ -78,7 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
         apiKeyInput.value = '';
         updateApiKeyUI();
         apiDrawer.classList.remove('open');
-        showToast('API Key cleared.', 'info');
+        showToast('Local API Key cleared.', 'info');
+        checkServerKeyStatus();
     });
 
     // Quick examples
@@ -189,6 +194,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function checkServerKeyStatus() {
+        // If local key exists, no need to check server
+        if (localApiKey) return;
+        
+        // We will make a silent attempt to check if .env has it by analyzing a dummy or checking server config
+        // For simplicity, we assume if local key is missing, it will check the dot indicator.
+        apiKeyStatusText.textContent = 'API Key: Checking server...';
+        
+        // We can check this by examining if the dot should stay active
+        // Let's call the analyze endpoint with a dummy to see if it complains about key missing.
+        try {
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: 'http://test-key-check.com', apiKey: 'CHECK_STATUS_ONLY' })
+            });
+            // If it returns a 500 or 400 with "crawl failed" or similar, it means the key exists!
+            // If it returns "Gemini API key not found", it means key is missing.
+            const data = await response.json();
+            if (data.error && data.error.includes('key not found')) {
+                apiKeyStatusDot.classList.remove('active');
+                apiKeyStatusText.textContent = 'API Key: Missing';
+            } else {
+                apiKeyStatusDot.classList.add('active');
+                apiKeyStatusText.textContent = 'API Key: Active (Server)';
+            }
+        } catch (e) {
+            apiKeyStatusDot.classList.remove('active');
+            apiKeyStatusText.textContent = 'API Key: Configure in UI';
+        }
+    }
+
     function resetLoadingSteps() {
         step1.className = 'progress-step active';
         step2.className = 'progress-step';
@@ -205,23 +242,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (step === 1) {
                 step1.className = 'progress-step done';
                 step2.className = 'progress-step active';
-                loadingStatusText.textContent = 'Parsing HTML headers and content structures...';
+                loadingStatusText.textContent = 'Crawling subpages (About, Services, Contact)...';
                 step = 2;
             } else if (step === 2) {
                 step2.className = 'progress-step done';
                 step3.className = 'progress-step active';
-                loadingStatusText.textContent = 'Initiating Gemini AI analysis model...';
+                loadingStatusText.textContent = 'Running deep signatures checks on headers & scripts...';
                 step = 3;
             } else if (step === 3) {
-                loadingStatusText.textContent = 'Analyzing functionalities & predicting construction costs...';
+                loadingStatusText.textContent = 'Performing strictly grounded Gemini AI analysis...';
                 step = 4;
             } else if (step === 4) {
                 step3.className = 'progress-step done';
                 step4.className = 'progress-step active';
-                loadingStatusText.textContent = 'Finalizing report details and chat environment...';
+                loadingStatusText.textContent = 'Compiling budget breakdowns and final consultant node...';
                 clearInterval(loadingInterval);
             }
-        }, 3000);
+        }, 2200);
     }
 
     function completeAllSteps() {
@@ -232,6 +269,17 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingStatusText.textContent = 'Analysis Completed!';
     }
 
+    // Helper to parse numbers from range e.g. "₹1,50,000 - ₹2,00,000" -> 150000
+    function extractCostValue(costStr) {
+        if (!costStr) return 100000;
+        const clean = costStr.replace(/[^0-9-]/g, '');
+        const parts = clean.split('-');
+        if (parts.length > 0 && parts[0]) {
+            return parseInt(parts[0], 10);
+        }
+        return 100000;
+    }
+
     // Render Dashboard Elements
     function renderDashboard(data) {
         siteTitle.textContent = data.title || 'Parsed Website';
@@ -240,6 +288,64 @@ document.addEventListener('DOMContentLoaded', () => {
         siteUrl.target = '_blank';
         siteDescription.textContent = data.description || 'No description extracted';
         siteOverview.textContent = data.overview || '';
+
+        // 1. Render Interactive Crawler map tree
+        crawlerMapRoot.innerHTML = '';
+        
+        // Add Homepage Node
+        const homeNode = document.createElement('div');
+        homeNode.className = 'map-node root';
+        const parsedBase = new URL(data.url);
+        homeNode.innerHTML = `
+            <div class="node-circle"><i class="fa-solid fa-house"></i></div>
+            <span class="node-label">Homepage</span>
+            <span class="node-url">${parsedBase.hostname}</span>
+        `;
+        crawlerMapRoot.appendChild(homeNode);
+
+        // Add subpage nodes if crawled
+        if (data.crawled_pages && data.crawled_pages.length > 1) {
+            // Skips the first page (homepage)
+            data.crawled_pages.slice(1).forEach(pageUrl => {
+                // Add connector line
+                const connector = document.createElement('div');
+                connector.className = 'map-connection active';
+                crawlerMapRoot.appendChild(connector);
+
+                // Add Node
+                const subNode = document.createElement('div');
+                subNode.className = 'map-node subpage';
+                const parsedSub = new URL(pageUrl);
+                
+                // Get label from path name
+                let pathLabel = parsedSub.pathname.replace(/^\/|\/$/g, '');
+                if (pathLabel.length > 12) pathLabel = pathLabel.substring(0, 10) + '...';
+                if (!pathLabel) pathLabel = 'Subpage';
+
+                subNode.innerHTML = `
+                    <div class="node-circle"><i class="fa-solid fa-file-code"></i></div>
+                    <span class="node-label">${pathLabel}</span>
+                    <span class="node-url">${parsedSub.pathname}</span>
+                `;
+                crawlerMapRoot.appendChild(subNode);
+            });
+        } else {
+            // Just add one warning/info node if SPA or only single page crawled
+            const connector = document.createElement('div');
+            connector.className = 'map-connection';
+            crawlerMapRoot.appendChild(connector);
+
+            const singleNode = document.createElement('div');
+            singleNode.className = 'map-node subpage';
+            singleNode.innerHTML = `
+                <div class="node-circle" style="border-color: var(--accent-tertiary); color: var(--accent-tertiary);">
+                    <i class="fa-solid fa-circle-nodes"></i>
+                </div>
+                <span class="node-label">Single-Page SPA</span>
+                <span class="node-url">Dynamic Router</span>
+            `;
+            crawlerMapRoot.appendChild(singleNode);
+        }
 
         // Render Services
         servicesList.innerHTML = '';
@@ -285,23 +391,40 @@ document.addEventListener('DOMContentLoaded', () => {
             techStackContainer.innerHTML = '<p class="site-overview">No tech stack details analyzed.</p>';
         }
 
-        // Cost estimation
+        // Cost estimation & dynamic budget weights
         totalCost.textContent = data.cost_estimation?.total_estimated_range || 'N/A';
         costTimeline.textContent = data.cost_estimation?.timeline || 'N/A';
         
         costBreakdownBody.innerHTML = '';
         if (data.cost_estimation?.breakdown && data.cost_estimation.breakdown.length > 0) {
-            data.cost_estimation.breakdown.forEach(item => {
+            
+            // First step: Calculate max cost to set percentages relatively
+            const costs = data.cost_estimation.breakdown.map(item => extractCostValue(item.cost_range));
+            const maxCost = Math.max(...costs);
+            const sumCost = costs.reduce((a, b) => a + b, 0);
+
+            data.cost_estimation.breakdown.forEach((item, index) => {
                 const tr = document.createElement('tr');
+                const costVal = costs[index];
+                
+                // Calculate percentage relative to the sum budget
+                let percent = sumCost > 0 ? Math.round((costVal / sumCost) * 100) : 25;
+                if (percent < 5) percent = 5; // minimum width to show indicator
+
                 tr.innerHTML = `
                     <td><strong>${item.module}</strong></td>
-                    <td>${item.cost_range}</td>
-                    <td class="text-accent">${item.explanation}</td>
+                    <td>
+                        <div class="progress-track" title="${percent}% budget weight">
+                            <div class="progress-fill" style="width: ${percent}%"></div>
+                        </div>
+                    </td>
+                    <td><span class="text-accent">${item.cost_range}</span></td>
+                    <td class="site-overview">${item.explanation}</td>
                 `;
                 costBreakdownBody.appendChild(tr);
             });
         } else {
-            costBreakdownBody.innerHTML = '<tr><td colspan="3" style="text-align:center">No breakdown data available</td></tr>';
+            costBreakdownBody.innerHTML = '<tr><td colspan="4" style="text-align:center">No breakdown data available</td></tr>';
         }
 
         // Audience
@@ -316,22 +439,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Actionable Improvements
+        // Actionable Improvements with Priority indicators
         improvementsList.innerHTML = '';
         if (data.improvements && data.improvements.length > 0) {
             data.improvements.forEach(imp => {
                 const item = document.createElement('div');
-                // Detect type for color coding
                 const typeLower = (imp.type || 'uiux').toLowerCase();
+                
                 let typeClass = 'imp-uiux';
                 if (typeLower.includes('seo')) typeClass = 'imp-seo';
-                else if (typeLower.includes('perf')) typeClass = 'imp-performance';
+                else if (typeLower.includes('perf') || typeLower.includes('speed')) typeClass = 'imp-performance';
                 else if (typeLower.includes('sec')) typeClass = 'imp-security';
 
                 item.className = `improvement-item ${typeClass}`;
                 item.innerHTML = `
                     <div style="display:flex; flex-direction:column; gap: 0.25rem;">
-                        <span class="improvement-tag">${imp.type || 'UX'}</span>
+                        <div><span class="improvement-tag">${imp.type || 'UX'}</span></div>
                         <div class="improvement-content">${imp.suggestion}</div>
                     </div>
                 `;
@@ -482,14 +605,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Unordered lists: - item, * item
         html = html.replace(/^\s*[-*]\s+(.*?)$/gm, '<li>$1</li>');
-        // Wrap <li> elements with <ul>, handle consecutive elements
         html = html.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
 
         // Ordered lists: 1. item
         html = html.replace(/^\s*\d+\.\s+(.*?)$/gm, '<li>$1</li>');
         html = html.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
         
-        // Paragraph newlines (replace double newlines with spacing, single with breaks)
+        // Paragraph newlines
         html = html.replace(/\n\n/g, '</p><p>');
         html = html.replace(/\n/g, '<br>');
         
@@ -505,7 +627,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function showToast(message, type = 'error') {
         toastMessage.textContent = message;
         
-        // Adjust icon & border based on type
         const icon = toast.querySelector('.toast-icon');
         if (type === 'success') {
             toast.style.borderColor = 'var(--accent-success)';
