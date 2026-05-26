@@ -1,0 +1,12 @@
+# Environment variables (contains private API Key)
+.env
+
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local IDE configuration or temporary files
+.idea/
+.vscode/
+*.log

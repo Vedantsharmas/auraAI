@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Website Analyzer & Chat Consultant</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="radial-bg orb-1"></div>
+    <div class="radial-bg orb-2"></div>
+    <div class="radial-bg orb-3"></div>
+
+    <div class="app-container">
+        <!-- Floating Header -->
+        <header class="glass-header">
+            <div class="logo">
+                <i class="fa-solid fa-wand-magic-sparkles logo-icon"></i>
+                <span class="logo-text">AURA <span class="logo-accent">WebAI</span></span>
+            </div>
+            
+            <div class="api-key-config">
+                <span class="api-status-dot" id="apiKeyStatusDot"></span>
+                <span class="api-status-text" id="apiKeyStatusText">API Key: Missing</span>
+                <button class="btn-icon" id="toggleApiBtn" title="Configure API Key">
+                    <i class="fa-solid fa-key"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- API Config Drawer (Slide down) -->
+        <div class="api-drawer glass-panel" id="apiDrawer">
+            <h3>Configure Google Gemini API Key</h3>
+            <p class="drawer-desc">Provide your Gemini API Key. It remains strictly local in your browser and is never stored on our servers.</p>
+            <div class="input-group">
+                <i class="fa-solid fa-lock input-icon"></i>
+                <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+                <button class="btn btn-primary" id="saveApiKeyBtn">Save Key</button>
+            </div>
+            <div class="drawer-actions">
+                <button class="btn btn-link text-danger" id="clearApiKeyBtn">Clear Saved Key</button>
+                <a href="https://aistudio.google.com/" target="_blank" class="api-link">Get Free Key <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+            </div>
+        </div>
+
+        <!-- Hero / Search Section -->
+        <section class="hero-section" id="heroSection">
+            <h1 class="hero-title animate-text">Deep Website Analysis & AI Consultation</h1>
+            <p class="hero-subtitle">Input any website URL to extract its structure, services, tech stack, and build costs, then chat directly with an AI Technical Consultant about it.</p>
+            
+            <form class="search-container glass-panel" id="searchForm">
+                <i class="fa-solid fa-globe search-icon"></i>
+                <input type="text" id="urlInput" placeholder="Enter website URL (e.g., vihilinfotech.com)" required>
+                <button type="submit" class="btn btn-gradient" id="analyzeBtn">
+                    <span>Analyze URL</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="quick-examples">
+                <span>Try examples:</span>
+                <button class="btn-pill example-btn" data-url="https://www.vihilinfotech.com">Vihil InfoTech</button>
+                <button class="btn-pill example-btn" data-url="https://news.ycombinator.com">Hacker News</button>
+                <button class="btn-pill example-btn" data-url="https://react.dev">React.dev</button>
+            </div>
+        </section>
+
+        <!-- Multi-step Loading Section -->
+        <section class="loading-section glass-panel hidden" id="loadingSection">
+            <div class="spinner-container">
+                <div class="double-spinner"></div>
+            </div>
+            <h3 class="loading-title">Analyzing Website...</h3>
+            <p class="loading-subtitle" id="loadingStatusText">Connecting to target site...</p>
+            
+            <div class="progress-steps">
+                <div class="progress-step active" id="step1">
+                    <span class="step-num"><i class="fa-solid fa-check"></i>1</span>
+                    <span class="step-label">Fetch HTML</span>
+                </div>
+                <div class="progress-step" id="step2">
+                    <span class="step-num"><i class="fa-solid fa-check"></i>2</span>
+                    <span class="step-label">Extract Content</span>
+                </div>
+                <div class="progress-step" id="step3">
+                    <span class="step-num"><i class="fa-solid fa-check"></i>3</span>
+                    <span class="step-label">AI Analysis</span>
+                </div>
+                <div class="progress-step" id="step4">
+                    <span class="step-num"><i class="fa-solid fa-check"></i>4</span>
+                    <span class="step-label">Formulate Costs</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Dashboard (Side by Side) -->
+        <main class="dashboard hidden" id="dashboard">
+            <!-- Left Side: Analysis Results -->
+            <div class="analysis-panel">
+                
+                <!-- Overview Card -->
+                <div class="card glass-panel animate-fade-in">
+                    <div class="card-header">
+                        <i class="fa-solid fa-circle-info card-icon"></i>
+                        <h2>Company Overview</h2>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="site-title" id="siteTitle">Website Name</h3>
+                        <p class="site-url" id="siteUrl">https://example.com</p>
+                        <p class="site-description text-accent" id="siteDescription">Tagline/Description</p>
+                        <hr class="divider">
+                        <p class="site-overview" id="siteOverview">Detailed analysis overview text goes here...</p>
+                    </div>
+                </div>
+
+                <!-- Services Card -->
+                <div class="card glass-panel animate-fade-in delay-100">
+                    <div class="card-header">
+                        <i class="fa-solid fa-layer-group card-icon"></i>
+                        <h2>Core Services & Functions</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="services-list" id="servicesList">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tech Stack Card -->
+                <div class="card glass-panel animate-fade-in delay-200">
+                    <div class="card-header">
+                        <i class="fa-solid fa-cubes card-icon"></i>
+                        <h2>Tech Stack Architecture</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="tech-stack-container" id="techStackContainer">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cost Estimation Card -->
+                <div class="card glass-panel cost-card animate-fade-in delay-300">
+                    <div class="card-header">
+                        <i class="fa-solid fa-money-bill-trend-up card-icon"></i>
+                        <h2>Clone Build Cost Estimate</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="cost-summary">
+                            <div class="cost-value">
+                                <span class="cost-label">Total Est. Cost</span>
+                                <span class="cost-amount" id="totalCost">₹1,50,000 - ₹3,00,000</span>
+                            </div>
+                            <div class="cost-time">
+                                <span class="cost-label">Timeframe</span>
+                                <span class="time-duration" id="costTimeline">3-4 Months</span>
+                            </div>
+                        </div>
+                        
+                        <div class="cost-table-container">
+                            <table class="cost-table">
+                                <thead>
+                                    <tr>
+                                        <th>Development Module</th>
+                                        <th>Est. Cost</th>
+                                        <th>Scope & Rationale</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="costBreakdownBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audience & Improvements -->
+                <div class="card glass-panel animate-fade-in delay-400">
+                    <div class="card-header">
+                        <i class="fa-solid fa-chart-line card-icon"></i>
+                        <h2>Audience & Suggestions</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="sub-section">
+                            <h3>Target Audience</h3>
+                            <p class="site-overview" id="audienceDesc">Audience overview text...</p>
+                            <div class="segments-container" id="audienceSegments">
+                                <!-- Badges -->
+                            </div>
+                        </div>
+                        <hr class="divider">
+                        <div class="sub-section">
+                            <h3>Actionable Improvements</h3>
+                            <div class="improvements-list" id="improvementsList">
+                                <!-- List items -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side: AI Consultant Chat Panel -->
+            <div class="chat-panel glass-panel">
+                <div class="chat-header">
+                    <div class="chat-bot-avatar">
+                        <i class="fa-solid fa-robot"></i>
+                        <span class="status-indicator online"></span>
+                    </div>
+                    <div class="chat-title-info">
+                        <h3>AI Tech Consultant</h3>
+                        <p>Ask about architecture, costs, or scaling</p>
+                    </div>
+                    <button class="btn-icon" id="clearChatBtn" title="Reset Chat">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Default welcome message -->
+                    <div class="message system-message">
+                        <div class="message-content">
+                            <p><strong>Consultant Initialized!</strong> Ask me anything about the analyzed website, for example:</p>
+                            <div class="chat-chips" id="quickQuestionsContainer">
+                                <!-- Suggested questions -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <textarea id="chatInput" placeholder="Ask details about code clone, security, stack choices, pricing..." rows="1"></textarea>
+                    <button id="sendChatBtn" class="btn btn-primary btn-round" disabled>
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast">
+        <i class="fa-solid fa-circle-exclamation toast-icon"></i>
+        <span class="toast-message" id="toastMessage">An error occurred</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
