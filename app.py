@@ -17,88 +17,92 @@ load_dotenv()
 # Default Groq model (can be overridden via environment variables)
 GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
 
+# Global flag to track if Playwright can be successfully spawned
+PLAYWRIGHT_AVAILABLE = True
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 CORS(app)
 
-# Helper function to crawl a single page and return cleaned text, headers, and soup
-def fetch_and_clean_page(url, headers):
-    """Fetch a page using requests, falling back to Playwright for JS-heavy content."""
-    requests_response = None
+# Helper function to fetch a single page using requests.
+def fetch_page_requests(url, headers):
+    """Fetch a single page using requests. Returns tuple (html, headers, cookies, status_code)."""
     try:
-        requests_response = requests.get(url, headers=headers, timeout=8, verify=True)
-        requests_response.raise_for_status()
+        response = requests.get(url, headers=headers, timeout=4, verify=True)
+        return response.text, dict(response.headers), dict(response.cookies), response.status_code
     except Exception:
         # Fallback to HTTP if HTTPS failed
         if url.startswith('https://'):
             http_url = url.replace('https://', 'http://')
             try:
-                requests_response = requests.get(http_url, headers=headers, timeout=8, verify=True)
-                requests_response.raise_for_status()
+                response = requests.get(http_url, headers=headers, timeout=4, verify=True)
+                return response.text, dict(response.headers), dict(response.cookies), response.status_code
             except Exception:
                 pass
+    return None, {}, {}, None
 
-    # Determine if we should attempt Playwright fallback
-    try_playwright = False
-    if requests_response is None:
-        try_playwright = True
-    else:
-        # Check if requests got a skeleton page with little/no text
-        temp_soup = BeautifulSoup(requests_response.text, 'html.parser')
-        # Strip code/formatting tags temporarily to evaluate textual density
-        for el in temp_soup(["script", "style", "iframe", "noscript", "svg", "path", "symbol", "canvas"]):
-            el.decompose()
-        text_content_len = len(temp_soup.get_text().strip())
-        
-        # If the actual clean text is less than 1200 characters, but raw page has scripts or root divs,
-        # it is highly likely a dynamic/client-side rendered app.
-        if text_content_len < 1200 and ("<script" in requests_response.text.lower() or "id=\"root\"" in requests_response.text.lower() or "id=\"app\"" in requests_response.text.lower() or "id=\"__next\"" in requests_response.text.lower()):
-            try_playwright = True
+# Helper function to fetch a batch of URLs using a single Playwright instance sequentially.
+def fetch_pages_playwright(urls, headers):
+    """Fetch a list of URLs sequentially using a single Playwright browser instance."""
+    global PLAYWRIGHT_AVAILABLE
+    results = {}
+    if not urls or not PLAYWRIGHT_AVAILABLE:
+        return results
 
-    response = None
-    if try_playwright:
-        try:
-            with sync_playwright() as p:
+    try:
+        with sync_playwright() as p:
+            try:
                 browser = p.chromium.launch(headless=True)
-                # Set extra HTTP headers to disable cache and spoof user agent
-                context = browser.new_context(
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    extra_http_headers={
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache',
-                        'Expires': '0'
-                    }
-                )
-                page = context.new_page()
-                page.goto(url, wait_until="networkidle", timeout=18000)
-                # Wait an extra 2 seconds for any client-side dynamic content to load/render
-                page.wait_for_timeout(2000)
-                html = page.content()
-                browser.close()
-                response = type('Resp', (), {
-                    'text': html,
-                    'status_code': 200,
-                    'headers': {},
-                    'cookies': {}
-                })
-        except Exception:
-            pass
+            except Exception as launch_err:
+                print(f"Severe error: Failed to launch Playwright browser: {launch_err}")
+                PLAYWRIGHT_AVAILABLE = False
+                return results
 
-    # Fallback to requests if Playwright failed
-    if response is None and requests_response is not None:
-        response = requests_response
+            # Create a single context
+            context = browser.new_context(
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                extra_http_headers={
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            )
+            context.set_default_navigation_timeout(10000)
+            
+            for url in urls:
+                try:
+                    page = context.new_page()
+                    # Use wait_until="load" (much faster than networkidle)
+                    response = page.goto(url, wait_until="load", timeout=10000)
+                    page.wait_for_timeout(500)
+                    html = page.content()
+                    
+                    resp_headers = {}
+                    if response:
+                        resp_headers = dict(response.headers)
+                    resp_cookies = {}
+                    for cookie in context.cookies([url]):
+                        resp_cookies[cookie['name']] = cookie['value']
+                        
+                    results[url] = (html, resp_headers, resp_cookies, 200)
+                    page.close()
+                except Exception as e:
+                    print(f"Playwright failed to fetch {url}: {e}")
+                    results[url] = (None, {}, {}, None)
+            
+            browser.close()
+    except Exception as e:
+        print(f"Failed to run Playwright session: {e}")
+    return results
 
-    # If both failed, return None
-    if response is None:
-        return None
-
-    # Continue with existing cleaning logic using response.text
-    soup = BeautifulSoup(response.text, 'html.parser')
+# Helper function to clean page HTML content into text, title, meta etc.
+def clean_page_content(url, html_content, headers, cookies):
+    soup = BeautifulSoup(html_content, 'html.parser')
     # Get title and meta
     title = soup.title.string.strip() if soup.title else ""
     meta_desc_tag = soup.find('meta', attrs={'name': 'description'}) or soup.find('meta', attrs={'property': 'og:description'})
     meta_desc = meta_desc_tag['content'].strip() if meta_desc_tag and meta_desc_tag.has_attr('content') else ""
-    # Clean only layout, script, and code-based styling elements
+    # Clean layout, script, and code-based styling elements
     for element in soup(["script", "style", "iframe", "noscript", "svg", "path", "symbol", "canvas"]):
         element.decompose()
     # Extract headings
@@ -125,10 +129,45 @@ def fetch_and_clean_page(url, headers):
         "title": title,
         "meta_description": meta_desc,
         "cleaned_text": page_context,
-        "raw_html": response.text,
-        "headers": dict(getattr(response, 'headers', {})),
-        "cookies": dict(getattr(response, 'cookies', {}))
+        "raw_html": html_content,
+        "headers": headers,
+        "cookies": cookies
     }
+
+# Optimized standalone fetch function (keeps backward compatibility)
+def fetch_and_clean_page(url, headers):
+    """Fetch a single page using requests, falling back to Playwright for JS-heavy content (optimized)."""
+    html, resp_headers, resp_cookies, status_code = fetch_page_requests(url, headers)
+    
+    try_playwright = False
+    if html is None or status_code != 200:
+        try_playwright = True
+    else:
+        temp_soup = BeautifulSoup(html, 'html.parser')
+        for el in temp_soup(["script", "style", "iframe", "noscript", "svg", "path", "symbol", "canvas"]):
+            el.decompose()
+        text_content_len = len(temp_soup.get_text().strip())
+        
+        # Refined SPA detection: text < 600 and contains typical SPA bootstrap selectors/scripts
+        if text_content_len < 600 and (
+            "id=\"root\"" in html.lower() or 
+            "id=\"app\"" in html.lower() or 
+            "id=\"__next\"" in html.lower() or 
+            "window.__next_data" in html.lower() or
+            "<script" in html.lower()
+        ):
+            try_playwright = True
+
+    if try_playwright:
+        pw_results = fetch_pages_playwright([url], headers)
+        if url in pw_results and pw_results[url][0] is not None:
+            html, resp_headers, resp_cookies, _ = pw_results[url]
+
+    if html is None:
+        return None
+
+    return clean_page_content(url, html, resp_headers, resp_cookies)
+
 
 # Helper function to fetch sitemap URLs
 def fetch_sitemap_urls(base_url, headers):
@@ -239,15 +278,71 @@ def crawl_and_clean_website(url, max_pages=15):
         if not batch_urls:
             break
             
-        # Crawl batch concurrently
-        newly_crawled = []
+        # Crawl batch: first fetch all via requests concurrently
+        requests_results = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(batch_urls)) as executor:
-            future_to_url = {executor.submit(fetch_and_clean_page, u, headers): u for u in batch_urls}
+            future_to_url = {executor.submit(fetch_page_requests, u, headers): u for u in batch_urls}
             for future in concurrent.futures.as_completed(future_to_url):
-                res = future.result()
-                if res:
-                    crawled_pages_dict[res['url']] = res
-                    newly_crawled.append(res)
+                u = future_to_url[future]
+                try:
+                    html, r_headers, r_cookies, status_code = future.result()
+                    requests_results[u] = (html, r_headers, r_cookies, status_code)
+                except Exception as e:
+                    print(f"Requests failed for {u} in batch: {e}")
+                    requests_results[u] = (None, {}, {}, None)
+        
+        # Determine which URLs need Playwright fallback
+        playwright_urls = []
+        crawled_this_batch = []
+        
+        for u in batch_urls:
+            html, r_headers, r_cookies, status_code = requests_results.get(u, (None, {}, {}, None))
+            
+            try_playwright = False
+            if html is None or status_code != 200:
+                try_playwright = True
+            else:
+                temp_soup = BeautifulSoup(html, 'html.parser')
+                for el in temp_soup(["script", "style", "iframe", "noscript", "svg", "path", "symbol", "canvas"]):
+                    el.decompose()
+                text_content_len = len(temp_soup.get_text().strip())
+                
+                # Refined SPA detection
+                if text_content_len < 600 and (
+                    "id=\"root\"" in html.lower() or 
+                    "id=\"app\"" in html.lower() or 
+                    "id=\"__next\"" in html.lower() or 
+                    "window.__next_data" in html.lower() or
+                    "<script" in html.lower()
+                ):
+                    try_playwright = True
+            
+            if try_playwright:
+                playwright_urls.append(u)
+            else:
+                # Succeeded with requests, clean immediately
+                cleaned = clean_page_content(u, html, r_headers, r_cookies)
+                crawled_pages_dict[u] = cleaned
+                crawled_this_batch.append(cleaned)
+                
+        # Fetch all Playwright URLs using a single browser instance
+        if playwright_urls:
+            pw_results = fetch_pages_playwright(playwright_urls, headers)
+            for u in playwright_urls:
+                html, pw_headers, pw_cookies, status_code = pw_results.get(u, (None, {}, {}, None))
+                if html is not None:
+                    cleaned = clean_page_content(u, html, pw_headers, pw_cookies)
+                    crawled_pages_dict[u] = cleaned
+                    crawled_this_batch.append(cleaned)
+                else:
+                    # If playwright failed, try fallback to requests result if we had one
+                    req_html, req_headers, req_cookies, req_status = requests_results.get(u, (None, {}, {}, None))
+                    if req_html is not None:
+                        cleaned = clean_page_content(u, req_html, req_headers, req_cookies)
+                        crawled_pages_dict[u] = cleaned
+                        crawled_this_batch.append(cleaned)
+
+        newly_crawled = crawled_this_batch
         
         # Extract links from successful crawls to enqueue
         new_discovered_links = []
@@ -375,9 +470,12 @@ def crawl_and_clean_website(url, max_pages=15):
     # Build the unified structured corpus text
     corpus = f"=== SITE URL: {url} ===\n"
     
-    # Calculate dynamic character budget per page to stay under LLM token limits (approx 12,000 tokens total)
-    num_pages = 1 + len(subpages_data)
-    char_budget_per_page = max(3500, 50000 // num_pages)
+    # Cap subpages sent to LLM to prevent exceeding rate limits (approx 6,000 TPM limit)
+    subpages_for_llm = subpages_data[:9] # max 10 pages total (homepage + 9 subpages)
+    num_pages = 1 + len(subpages_for_llm)
+    
+    # Allocate a maximum of 14,000 characters total across all pages
+    char_budget_per_page = max(800, 14000 // num_pages)
     
     homepage_text = homepage_data['cleaned_text']
     if len(homepage_text) > char_budget_per_page:
@@ -385,7 +483,7 @@ def crawl_and_clean_website(url, max_pages=15):
         
     corpus += f"=== PAGE: Homepage (/) ===\n{homepage_text}\n\n"
     
-    for page in subpages_data:
+    for page in subpages_for_llm:
         parsed_p = urlparse(page['url'])
         page_text = page['cleaned_text']
         if len(page_text) > char_budget_per_page:
@@ -572,17 +670,36 @@ CRITICAL GROUNDING RULES:
 5. Ensure the output is valid, parsable JSON, and DO NOT wrap it in markdown code blocks like ```json ... ```. Output raw JSON only.
 """
 
-        # Generate content with Groq JSON mode
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
-            model=GROQ_MODEL,
-            response_format={"type": "json_object"}
-        )
+        # Generate content with Groq JSON mode (with fallback for rate limits)
+        load_dotenv()
+        model_to_use = data.get('model') or os.getenv('GROQ_MODEL') or 'llama-3.1-8b-instant'
+        try:
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model=model_to_use,
+                response_format={"type": "json_object"}
+            )
+        except Exception as e:
+            if "429" in str(e) and model_to_use != 'llama-3.1-8b-instant':
+                print(f"Model {model_to_use} rate limited. Falling back to llama-3.1-8b-instant...")
+                model_to_use = 'llama-3.1-8b-instant'
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt,
+                        }
+                    ],
+                    model=model_to_use,
+                    response_format={"type": "json_object"}
+                )
+            else:
+                raise e
         
         # Extract response text
         response_text = chat_completion.choices[0].message.content if chat_completion.choices else ""
@@ -657,10 +774,24 @@ Your goal:
             
         messages.append({"role": "user", "content": message})
 
-        chat_completion = client.chat.completions.create(
-            messages=messages,
-            model=GROQ_MODEL
-        )
+        # Generate chat completion (with fallback for rate limits)
+        load_dotenv()
+        model_to_use = data.get('model') or os.getenv('GROQ_MODEL') or 'llama-3.1-8b-instant'
+        try:
+            chat_completion = client.chat.completions.create(
+                messages=messages,
+                model=model_to_use
+            )
+        except Exception as e:
+            if "429" in str(e) and model_to_use != 'llama-3.1-8b-instant':
+                print(f"Model {model_to_use} rate limited in chat. Falling back to llama-3.1-8b-instant...")
+                model_to_use = 'llama-3.1-8b-instant'
+                chat_completion = client.chat.completions.create(
+                    messages=messages,
+                    model=model_to_use
+                )
+            else:
+                raise e
         
         return jsonify({"response": chat_completion.choices[0].message.content})
 

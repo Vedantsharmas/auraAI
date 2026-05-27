@@ -280,10 +280,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingStatusText.textContent = 'Compiling budget breakdowns and building clone estimates...';
                 step = 4;
             } else if (step === 4) {
-                loadingStatusText.textContent = 'Finalizing report nodes...';
+                const messages = [
+                    'Finalizing report nodes...',
+                    'Formatting output nodes...',
+                    'Synthesizing final estimates...',
+                    'Awaiting Groq API response...'
+                ];
+                let msgIdx = 0;
                 clearInterval(loadingInterval);
+                loadingInterval = setInterval(() => {
+                    loadingStatusText.textContent = messages[msgIdx % messages.length];
+                    msgIdx++;
+                }, 1500);
             }
-        }, 1800);
+        }, 800);
     }
 
     function completeAllSteps() {
