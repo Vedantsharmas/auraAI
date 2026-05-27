@@ -209,71 +209,60 @@ def crawl_and_clean_website(url, max_pages=15):
             return 1
         return 2
 
-    # Try sitemap discovery first
+    # Unified crawler: Seed the queue with both homepage and sitemap URLs
     sitemap_urls = fetch_sitemap_urls(url, headers)
+    homepage_cleaned = url.rstrip('/')
+    to_crawl_queue = [homepage_cleaned]
+    for s_url in sitemap_urls:
+        s_url_cleaned = s_url.rstrip('/')
+        if s_url_cleaned not in to_crawl_queue:
+            to_crawl_queue.append(s_url_cleaned)
+            
+    # Sort initial queue so homepage and priority pages are crawled first
+    to_crawl_queue = sorted(list(dict.fromkeys(to_crawl_queue)), key=get_priority_score)
     
     crawled_pages_dict = {}
-
-    if sitemap_urls:
-        # We got URLs from the sitemap! Sort by priority
-        sitemap_urls = sorted(sitemap_urls, key=get_priority_score)
+    visited = set()
+    
+    while to_crawl_queue and len(crawled_pages_dict) < MAX_PAGES_TO_CRAWL:
+        # Determine next batch to crawl
+        batch_size = min(MAX_WORKERS, MAX_PAGES_TO_CRAWL - len(crawled_pages_dict))
+        batch_urls = []
         
-        homepage_cleaned = url.rstrip('/')
-        # Remove homepage if it exists in sitemap list to avoid crawling it twice
-        sitemap_urls = [u for u in sitemap_urls if u.rstrip('/') != homepage_cleaned]
+        while to_crawl_queue and len(batch_urls) < batch_size:
+            u = to_crawl_queue.pop(0)
+            u_cleaned = u.rstrip('/')
+            if u_cleaned not in visited:
+                visited.add(u_cleaned)
+                batch_urls.append(u_cleaned)
         
-        urls_to_crawl = [url] + sitemap_urls
-        urls_to_crawl = list(dict.fromkeys(urls_to_crawl))[:MAX_PAGES_TO_CRAWL]
-        
-        # Crawl concurrently in thread pool
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            future_to_url = {executor.submit(fetch_and_clean_page, u, headers): u for u in urls_to_crawl}
+        if not batch_urls:
+            break
+            
+        # Crawl batch concurrently
+        newly_crawled = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(batch_urls)) as executor:
+            future_to_url = {executor.submit(fetch_and_clean_page, u, headers): u for u in batch_urls}
             for future in concurrent.futures.as_completed(future_to_url):
                 res = future.result()
                 if res:
                     crawled_pages_dict[res['url']] = res
-    else:
-        # Fallback to BFS recursive crawling
-        to_crawl_queue = [url.rstrip('/')]
-        visited = set()
+                    newly_crawled.append(res)
         
-        while to_crawl_queue and len(crawled_pages_dict) < MAX_PAGES_TO_CRAWL:
-            # Determine next batch to crawl
-            batch_size = min(MAX_WORKERS, MAX_PAGES_TO_CRAWL - len(crawled_pages_dict))
-            batch_urls = []
-            
-            while to_crawl_queue and len(batch_urls) < batch_size:
-                u = to_crawl_queue.pop(0)
-                if u not in visited:
-                    visited.add(u)
-                    batch_urls.append(u)
-            
-            if not batch_urls:
-                break
-                
-            # Crawl batch concurrently
-            newly_crawled = []
-            with concurrent.futures.ThreadPoolExecutor(max_workers=len(batch_urls)) as executor:
-                future_to_url = {executor.submit(fetch_and_clean_page, u, headers): u for u in batch_urls}
-                for future in concurrent.futures.as_completed(future_to_url):
-                    res = future.result()
-                    if res:
-                        crawled_pages_dict[res['url']] = res
-                        newly_crawled.append(res)
-            
-            # Extract links from successful crawls to enqueue
-            new_discovered_links = []
-            for page in newly_crawled:
-                discovered = extract_internal_links(page['url'], page['raw_html'])
-                for d in discovered:
-                    if d not in visited and d not in to_crawl_queue and d not in crawled_pages_dict:
-                        new_discovered_links.append(d)
-            
-            # Deduplicate and sort discovered links
-            new_discovered_links = list(set(new_discovered_links))
-            new_discovered_links = sorted(new_discovered_links, key=get_priority_score)
-            
-            to_crawl_queue.extend(new_discovered_links)
+        # Extract links from successful crawls to enqueue
+        new_discovered_links = []
+        for page in newly_crawled:
+            discovered = extract_internal_links(page['url'], page['raw_html'])
+            for d in discovered:
+                d_cleaned = d.rstrip('/')
+                if d_cleaned not in visited and d_cleaned not in to_crawl_queue and d_cleaned not in crawled_pages_dict:
+                    new_discovered_links.append(d_cleaned)
+        
+        # Deduplicate and sort discovered links
+        new_discovered_links = list(set(new_discovered_links))
+        new_discovered_links = sorted(new_discovered_links, key=get_priority_score)
+        
+        to_crawl_queue.extend(new_discovered_links)
 
     # Resolve homepage_data
     homepage_key = None
@@ -295,7 +284,10 @@ def crawl_and_clean_website(url, max_pages=15):
         homepage_key = homepage_data['url']
         
     homepage_data = crawled_pages_dict[homepage_key]
-    subpages_data = [v for k, v in crawled_pages_dict.items() if k != homepage_key]
+    
+    # Unique values from crawled_pages_dict to avoid duplicates in subpages_data
+    unique_pages = list({v['url']: v for v in crawled_pages_dict.values()}.values())
+    subpages_data = [p for p in unique_pages if p['url'] != homepage_key]
 
     # Advanced Tech Stack Signature Scanner (Headers, Cookies, HTML, scripts)
     detected_tech = set()
@@ -520,9 +512,15 @@ Ensure you strictly match the following JSON schema:
         "description": "Sleek description of what the company does",
         "overview": "Detailed overview of the company, their business domain, core value proposition, and operations.",
         "company_info": {{
-            "leadership": "Names and roles of key personnel (e.g. CEO, founders) if mentioned",
-            "contact": "Email, phone, or location if mentioned",
-            "founded": "Year founded if mentioned"
+            "owner": "Names of founders, owners, or CEO if mentioned (or 'Not explicitly mentioned in website content')",
+            "location": "HQ city/state/country if mentioned (or 'Not explicitly mentioned in website content')",
+            "address": "Full physical address(es) if mentioned (or 'Not explicitly mentioned in website content')",
+            "contact_details": {{
+                "email": "Primary contact email address if mentioned (or 'Not explicitly mentioned in website content')",
+                "phone": "Primary phone number if mentioned (or 'Not explicitly mentioned in website content')"
+            }},
+            "founded": "Year founded if mentioned (or 'Not explicitly mentioned in website content')",
+            "core_industry": "Primary industry or domain of operation (e.g. EdTech, FinTech, E-commerce, Software Development, IT Consulting, etc.)"
         }},
         "services": [
           {{

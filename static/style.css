@@ -1403,3 +1403,37 @@ body.brutalist-theme {
 .hidden {
     display: none !important;
 }
+
+/* Company Metadata Grid */
+.company-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.company-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: var(--color-dark-charcoal);
+    padding: 8px 12px;
+    background-color: var(--color-cream-bg);
+    border: 1.5px solid var(--color-brand-red);
+    border-radius: 4px;
+}
+
+.company-meta-item i {
+    color: var(--color-brand-red);
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .company-meta-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

@@ -313,21 +313,89 @@ document.addEventListener('DOMContentLoaded', () => {
         siteUrl.target = '_blank';
         siteDescription.textContent = data.description || 'No description extracted';
         siteOverview.textContent = data.overview || '';
-        // Populate extracted emails
-        const siteEmails = document.getElementById('siteEmails');
-        if (siteEmails) {
-            const emails = data.emails && data.emails.length > 0 ? data.emails.join(', ') : 'No email found';
-            siteEmails.textContent = emails;
-            // Unhide if emails exist
-            siteEmails.style.display = data.emails && data.emails.length > 0 ? 'block' : 'none';
+        // 1. Populate Owner/Leadership
+        const siteOwner = document.getElementById('siteOwner');
+        const metaItemOwner = document.getElementById('metaItemOwner');
+        if (siteOwner && metaItemOwner) {
+            const ceo = data.ceo && data.ceo.trim() ? data.ceo : (data.company_info && data.company_info.owner ? data.company_info.owner : (data.company_info && data.company_info.leadership ? data.company_info.leadership : ''));
+            if (ceo && ceo !== 'Not explicitly mentioned in website content') {
+                siteOwner.textContent = ceo;
+                metaItemOwner.style.display = 'flex';
+            } else {
+                metaItemOwner.style.display = 'none';
+            }
         }
-        // Populate extracted CEO name
-        const siteCEO = document.getElementById('siteCEO');
-        if (siteCEO) {
-            const ceo = data.ceo && data.ceo.trim() ? data.ceo : (data.company_info && data.company_info.leadership ? data.company_info.leadership : '');
-            siteCEO.textContent = ceo || 'CEO not found';
-            // Show if CEO info exists
-            siteCEO.style.display = ceo ? 'block' : 'none';
+
+        // 2. Populate Core Industry
+        const siteIndustry = document.getElementById('siteIndustry');
+        const metaItemIndustry = document.getElementById('metaItemIndustry');
+        if (siteIndustry && metaItemIndustry) {
+            const industry = data.company_info && data.company_info.core_industry ? data.company_info.core_industry : '';
+            if (industry && industry !== 'Not explicitly mentioned in website content') {
+                siteIndustry.textContent = industry;
+                metaItemIndustry.style.display = 'flex';
+            } else {
+                metaItemIndustry.style.display = 'none';
+            }
+        }
+
+        // 3. Populate Location
+        const siteLocation = document.getElementById('siteLocation');
+        const metaItemLocation = document.getElementById('metaItemLocation');
+        if (siteLocation && metaItemLocation) {
+            const location = data.company_info && data.company_info.location ? data.company_info.location : '';
+            if (location && location !== 'Not explicitly mentioned in website content') {
+                siteLocation.textContent = location;
+                metaItemLocation.style.display = 'flex';
+            } else {
+                metaItemLocation.style.display = 'none';
+            }
+        }
+
+        // 4. Populate Full Address
+        const siteAddress = document.getElementById('siteAddress');
+        const metaItemAddress = document.getElementById('metaItemAddress');
+        if (siteAddress && metaItemAddress) {
+            const address = data.company_info && data.company_info.address ? data.company_info.address : '';
+            if (address && address !== 'Not explicitly mentioned in website content') {
+                siteAddress.textContent = address;
+                metaItemAddress.style.display = 'flex';
+            } else {
+                metaItemAddress.style.display = 'none';
+            }
+        }
+
+        // 5. Populate Emails
+        const siteEmails = document.getElementById('siteEmails');
+        const metaItemEmail = document.getElementById('metaItemEmail');
+        if (siteEmails && metaItemEmail) {
+            const emailsList = data.emails && data.emails.length > 0 
+                ? data.emails 
+                : (data.company_info && data.company_info.contact_details && data.company_info.contact_details.email 
+                    ? [data.company_info.contact_details.email] 
+                    : []);
+            const cleanEmails = emailsList.filter(e => e && e !== 'Not explicitly mentioned in website content');
+            if (cleanEmails.length > 0) {
+                siteEmails.textContent = cleanEmails.join(', ');
+                metaItemEmail.style.display = 'flex';
+            } else {
+                metaItemEmail.style.display = 'none';
+            }
+        }
+
+        // 6. Populate Phone
+        const sitePhone = document.getElementById('sitePhone');
+        const metaItemPhone = document.getElementById('metaItemPhone');
+        if (sitePhone && metaItemPhone) {
+            const phone = data.company_info && data.company_info.contact_details && data.company_info.contact_details.phone 
+                ? data.company_info.contact_details.phone 
+                : (data.company_info && data.company_info.contact ? data.company_info.contact : '');
+            if (phone && phone !== 'Not explicitly mentioned in website content') {
+                sitePhone.textContent = phone;
+                metaItemPhone.style.display = 'flex';
+            } else {
+                metaItemPhone.style.display = 'none';
+            }
         }
         // 1. Render Interactive Crawler map tree
         crawlerMapRoot.innerHTML = '';
