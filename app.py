@@ -28,14 +28,14 @@ CORS(app)
 def fetch_page_requests(url, headers):
     """Fetch a single page using requests. Returns tuple (html, headers, cookies, status_code)."""
     try:
-        response = requests.get(url, headers=headers, timeout=4, verify=True)
+        response = requests.get(url, headers=headers, timeout=8, verify=True)
         return response.text, dict(response.headers), dict(response.cookies), response.status_code
     except Exception:
         # Fallback to HTTP if HTTPS failed
         if url.startswith('https://'):
             http_url = url.replace('https://', 'http://')
             try:
-                response = requests.get(http_url, headers=headers, timeout=4, verify=True)
+                response = requests.get(http_url, headers=headers, timeout=8, verify=True)
                 return response.text, dict(response.headers), dict(response.cookies), response.status_code
             except Exception:
                 pass
@@ -58,23 +58,25 @@ def fetch_pages_playwright(urls, headers):
                 PLAYWRIGHT_AVAILABLE = False
                 return results
 
-            # Create a single context
+            # Create a single context with realistic browser settings
             context = browser.new_context(
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                viewport={'width': 1920, 'height': 1080},
                 extra_http_headers={
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
                     'Pragma': 'no-cache',
                     'Expires': '0'
                 }
             )
-            context.set_default_navigation_timeout(10000)
+            context.set_default_navigation_timeout(15000)
             
             for url in urls:
                 try:
                     page = context.new_page()
-                    # Use wait_until="load" (much faster than networkidle)
-                    response = page.goto(url, wait_until="load", timeout=10000)
-                    page.wait_for_timeout(500)
+                    # Use wait_until="networkidle" for better SPA loading
+                    response = page.goto(url, wait_until="networkidle", timeout=15000)
+                    # Wait a bit for dynamic content to render
+                    page.wait_for_timeout(1500)
                     html = page.content()
                     
                     resp_headers = {}
@@ -102,9 +104,37 @@ def clean_page_content(url, html_content, headers, cookies):
     title = soup.title.string.strip() if soup.title else ""
     meta_desc_tag = soup.find('meta', attrs={'name': 'description'}) or soup.find('meta', attrs={'property': 'og:description'})
     meta_desc = meta_desc_tag['content'].strip() if meta_desc_tag and meta_desc_tag.has_attr('content') else ""
+
+    # Extract structured contact info BEFORE decomposing elements (since anchors can have mailto/tel hrefs)
+    contact_emails = set()
+    contact_phones = set()
+    
+    # 1. Check mailto: and tel: links
+    for a in soup.find_all('a', href=True):
+        href = a['href'].strip()
+        if href.lower().startswith('mailto:'):
+            email = href[7:].split('?')[0].strip()
+            if email:
+                contact_emails.add(email)
+        elif href.lower().startswith('tel:'):
+            phone = href[4:].split('?')[0].strip()
+            if phone:
+                contact_phones.add(phone)
+
+    # 2. Check plain text in the soup
+    page_text = soup.get_text()
+    for email in re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", page_text):
+        contact_emails.add(email.strip())
+        
+    for phone in re.findall(r"\+?\d{1,4}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}", page_text):
+        digits = re.sub(r"\D", "", phone)
+        if 7 <= len(digits) <= 15:
+            contact_phones.add(phone.strip())
+
     # Clean layout, script, and code-based styling elements
     for element in soup(["script", "style", "iframe", "noscript", "svg", "path", "symbol", "canvas"]):
         element.decompose()
+
     # Extract headings
     headings = []
     for tag in ['h1', 'h2', 'h3', 'h4']:
@@ -112,6 +142,7 @@ def clean_page_content(url, html_content, headers, cookies):
             text = h.get_text().strip()
             if text and len(text) > 3:
                 headings.append(f"{tag.upper()}: {text}")
+
     # Extract clean text segments
     text_blocks = []
     for p in soup.find_all(['p', 'li', 'article', 'section', 'td', 'div']):
@@ -119,11 +150,37 @@ def clean_page_content(url, html_content, headers, cookies):
             continue
         text = p.get_text(separator=' ').strip()
         text = re.sub(r'\s+', ' ', text)
-        if len(text) > 20 and text not in text_blocks:
+        if not text:
+            continue
+
+        # Preserve short items if they look like valuable contact details
+        is_contact_detail = False
+        text_lower = text.lower()
+        if "@" in text and re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text):
+            is_contact_detail = True
+        elif re.search(r"\+?\d{1,4}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}", text):
+            digits = re.sub(r"\D", "", text)
+            if 7 <= len(digits) <= 15:
+                is_contact_detail = True
+        elif any(kw in text_lower for kw in ["address", "office", "hq", "headquarter", "street", "road", "building", "floor", "highway", "avenue", "lane", "pin code", "zip code", "contact us", "call us", "phone", "email"]):
+            is_contact_detail = True
+
+        if (len(text) > 20 or is_contact_detail) and text not in text_blocks:
             text_blocks.append(text)
+
     cleaned_headings = "\n".join(headings[:50])
     cleaned_content = "\n".join(text_blocks[:150])
-    page_context = f"Page Title: {title}\nMeta Description: {meta_desc}\n\nHEADINGS:\n{cleaned_headings}\n\nCONTENT:\n{cleaned_content}"
+    
+    # Format contact section
+    contact_info_lines = []
+    if contact_emails:
+        contact_info_lines.append(f"Emails found: {', '.join(sorted(contact_emails))}")
+    if contact_phones:
+        contact_info_lines.append(f"Phones found: {', '.join(sorted(contact_phones))}")
+    contact_summary = "\n".join(contact_info_lines) if contact_info_lines else "None extracted"
+
+    page_context = f"Page Title: {title}\nMeta Description: {meta_desc}\n\nHEADINGS:\n{cleaned_headings}\n\nCONTENT:\n{cleaned_content}\n\nEXTRACTED CONTACT INFO:\n{contact_summary}"
+    
     return {
         "url": url,
         "title": title,
@@ -148,14 +205,20 @@ def fetch_and_clean_page(url, headers):
             el.decompose()
         text_content_len = len(temp_soup.get_text().strip())
         
-        # Refined SPA detection: text < 600 and contains typical SPA bootstrap selectors/scripts
-        if text_content_len < 600 and (
-            "id=\"root\"" in html.lower() or 
-            "id=\"app\"" in html.lower() or 
-            "id=\"__next\"" in html.lower() or 
-            "window.__next_data" in html.lower() or
-            "<script" in html.lower()
-        ):
+        # Enhanced SPA detection - look for React/Vue/Angular indicators
+        is_spa = False
+        html_lower = html.lower()
+        if ('id="root"' in html_lower or 
+            'id="app"' in html_lower or 
+            'id="__next"' in html_lower or 
+            'data-reactroot' in html_lower or
+            'ng-version' in html_lower or
+            'vue-app' in html_lower or
+            text_content_len < 800):
+            is_spa = True
+        
+        # If it's an SPA with low text content, use Playwright
+        if is_spa and text_content_len < 1000:
             try_playwright = True
 
     if try_playwright:
@@ -197,15 +260,131 @@ def fetch_sitemap_urls(base_url, headers):
         pass
     return []
 
+
+def extract_ceo_from_js_bundle(base_url, headers):
+    """Fetch and parse the main JS bundle to extract CEO/leadership information."""
+    try:
+        # First fetch the homepage to find the JS bundle URL
+        resp = requests.get(base_url, headers=headers, timeout=8)
+        if resp.status_code != 200:
+            return None
+        
+        # Look for the main JS bundle in the HTML
+        js_patterns = [
+            r'static/js/main\.[a-f0-9]+\.js',
+            r'static/js/bundle\.js',
+            r'static/js/[^"]+\.js',
+            r'js/main\.[a-f0-9]+\.js'
+        ]
+        
+        js_url = None
+        for pattern in js_patterns:
+            matches = re.findall(pattern, resp.text)
+            if matches:
+                js_url = matches[0]
+                break
+        
+        if not js_url:
+            return None
+        
+        # Fetch the JS bundle
+        full_js_url = urljoin(base_url, js_url)
+        js_resp = requests.get(full_js_url, headers=headers, timeout=15)
+        if js_resp.status_code != 200:
+            return None
+        
+        js_content = js_resp.text
+        
+        # Enhanced CEO extraction patterns
+        ceo_patterns = [
+            # Pattern for team array in the JS
+            r'name:\s*["\']([^"\']+)["\'].*?position:\s*["\'][^"\']*CEO[^"\']*["\']',
+            r'position:\s*["\'][^"\']*CEO[^"\']*["\'].*?name:\s*["\']([^"\']+)["\']',
+            r'"name":"([^"]+)".*?"position":"[^"]*CEO[^"]*"',
+            r'"position":"[^"]*CEO[^"]*".*?"name":"([^"]+)"',
+            # CEO name patterns
+            r'CEO[\s\-:]*([A-Z][a-zA-Z.,\-\s]+)',
+            r'Chief Executive Officer[\s\-:]*([A-Z][a-zA-Z.,\-\s]+)',
+            r'Founder[\s\-:]*([A-Z][a-zA-Z.,\-\s]+)',
+            r'([A-Z][a-zA-Z.,\-\s]+)[\s\-]*CEO',
+            r'([A-Z][a-zA-Z.,\-\s]+)[\s\-]*Chief Executive Officer',
+            # Specific known names from the site
+            r'Bharat\s+Desai',
+            r'Manish\s+Shah',
+            r'Jay\s+shah',
+            r'Heer\s+patel',
+            r'Dhaval\s+prajapati',
+            r'Mihir\s+prajapati'
+        ]
+        
+        for pattern in ceo_patterns:
+            match = re.search(pattern, js_content, re.IGNORECASE)
+            if match:
+                ceo_name = match.group(1).strip()
+                # Clean up the name
+                ceo_name = re.sub(r'[^\w\s\.\-]', '', ceo_name)
+                if len(ceo_name) > 3 and len(ceo_name) < 100:
+                    return ceo_name
+    except Exception as e:
+        print(f"Error extracting CEO from JS bundle: {e}")
+    
+    return None
+
+
+# Enhanced internal link extraction for SPAs
+def extract_internal_links_enhanced(page_url, html_content, base_domain):
+    """Extract internal links from HTML, including React Router links."""
+    soup = BeautifulSoup(html_content, 'html.parser')
+    discovered = []
+    
+    # Look for standard href links
+    for a in soup.find_all('a', href=True):
+        href = a['href'].strip()
+        if href and not href.startswith('#') and not href.startswith('javascript:'):
+            resolved = urljoin(page_url, href)
+            parsed_resolved = urlparse(resolved)
+            resolved_domain = parsed_resolved.netloc.replace('www.', '')
+            
+            # Keep only internal links
+            if base_domain in resolved_domain or not resolved_domain:
+                path = parsed_resolved.path.lower()
+                # Skip static files
+                if any(path.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.zip', '.css', '.js', '.mp4', '.xml', '.svg', '.ico', '.webp']):
+                    continue
+                # Normalize URL
+                cleaned_url = resolved.split('#')[0].split('?')[0].rstrip('/')
+                if cleaned_url and cleaned_url not in discovered:
+                    discovered.append(cleaned_url)
+    
+    # Also look for React Router links (data-to, data-href, onClick navigate)
+    react_link_selectors = ['[data-to]', '[data-href]', '[data-path]', '[data-url]', '[to]']
+    for selector in react_link_selectors:
+        for elem in soup.select(selector):
+            href = elem.get('data-to') or elem.get('data-href') or elem.get('data-path') or elem.get('data-url') or elem.get('to')
+            if href and isinstance(href, str) and href.strip():
+                href = href.strip()
+                if not href.startswith('#') and not href.startswith('javascript:'):
+                    resolved = urljoin(page_url, href)
+                    parsed_resolved = urlparse(resolved)
+                    resolved_domain = parsed_resolved.netloc.replace('www.', '')
+                    
+                    if base_domain in resolved_domain or not resolved_domain:
+                        cleaned_url = resolved.split('#')[0].split('?')[0].rstrip('/')
+                        if cleaned_url and cleaned_url not in discovered:
+                            discovered.append(cleaned_url)
+    
+    return discovered
+
+
 # Advanced multi-page crawler & tech stack signature scanner
 def crawl_and_clean_website(url, max_pages=15):
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
 
     # Configuration constants for crawling depth and performance
-    MAX_PAGES_TO_CRAWL = max_pages     # Limit pages to user-selected option
-    MAX_WORKERS = min(10, max_pages)   # scale workers accordingly
-    MAX_CORPUS_SIZE = 100000   # Adjust corpus size limit for deep scans
+    MAX_PAGES_TO_CRAWL = max_pages
+    MAX_WORKERS = min(10, max_pages)
+    MAX_CORPUS_SIZE = 100000
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -218,50 +397,52 @@ def crawl_and_clean_website(url, max_pages=15):
 
     parsed_base = urlparse(url)
     base_domain = parsed_base.netloc.replace('www.', '')
-
-    # Helper to extract internal links from HTML content
-    def extract_internal_links(page_url, html_content):
-        soup = BeautifulSoup(html_content, 'html.parser')
-        discovered = []
-        for a in soup.find_all('a', href=True):
-            href = a['href'].strip()
-            resolved = urljoin(page_url, href)
-            parsed_resolved = urlparse(resolved)
-            resolved_domain = parsed_resolved.netloc.replace('www.', '')
-            
-            # Keep only internal links and skip common static files
-            if base_domain in resolved_domain or not resolved_domain:
-                path = parsed_resolved.path.lower()
-                if any(path.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.zip', '.css', '.js', '.mp4', '.xml']):
-                    continue
-                # Normalize URL: strip fragments, queries, and trailing slash
-                cleaned_url = resolved.split('#')[0].split('?')[0].rstrip('/')
-                if cleaned_url:
-                    discovered.append(cleaned_url)
-        return list(set(discovered))
-
-    # Helper to calculate priority score based on keywords (lower score is crawled first)
-    def get_priority_score(u):
-        path = urlparse(u).path.lower()
-        priority_keywords = ['about', 'team', 'board', 'leadership', 'ceo', 'founder', 'management', 'executive', 'contact', 'staff', 'people', 'services', 'product', 'pricing', 'features']
-        if any(kw in path for kw in priority_keywords):
-            return 1
-        return 2
-
-    # Unified crawler: Seed the queue with both homepage and sitemap URLs
-    sitemap_urls = fetch_sitemap_urls(url, headers)
-    homepage_cleaned = url.rstrip('/')
-    to_crawl_queue = [homepage_cleaned]
+    root_homepage = f"{parsed_base.scheme}://{parsed_base.netloc}"
+    
+    # Pre-defined important routes to crawl for SPAs
+    important_routes = ['/who-we-are', '/our-services', '/about', '/team', '/contact', '/about-us', '/company', '/leadership']
+    
+    # Seed queue with homepage and important routes
+    to_crawl_queue = [url.rstrip('/')]
+    
+    # Add root homepage
+    root_cleaned = root_homepage.rstrip('/')
+    if root_cleaned not in to_crawl_queue:
+        to_crawl_queue.append(root_cleaned)
+    
+    # Add important routes
+    for route in important_routes:
+        full_url = urljoin(root_homepage, route)
+        cleaned = full_url.rstrip('/')
+        if cleaned not in to_crawl_queue:
+            to_crawl_queue.append(cleaned)
+    
+    # Add sitemap URLs
+    sitemap_urls = fetch_sitemap_urls(root_homepage, headers)
     for s_url in sitemap_urls:
         s_url_cleaned = s_url.rstrip('/')
         if s_url_cleaned not in to_crawl_queue:
             to_crawl_queue.append(s_url_cleaned)
-            
-    # Sort initial queue so homepage and priority pages are crawled first
+    
+    # Priority scoring for crawling order
+    def get_priority_score(u):
+        parsed_u = urlparse(u)
+        path = parsed_u.path.lower()
+        if path.strip('/') == '':
+            return 0
+        priority_keywords = ['who-we-are', 'about', 'team', 'leadership', 'ceo', 'founder', 'management', 'executive', 'contact', 'staff', 'people']
+        if any(kw in path for kw in priority_keywords):
+            return 1
+        return 2
+    
+    # Sort initial queue by priority
     to_crawl_queue = sorted(list(dict.fromkeys(to_crawl_queue)), key=get_priority_score)
     
     crawled_pages_dict = {}
     visited = set()
+    
+    # Check if it's an SPA on first page
+    is_spa_site = False
     
     while to_crawl_queue and len(crawled_pages_dict) < MAX_PAGES_TO_CRAWL:
         # Determine next batch to crawl
@@ -277,8 +458,8 @@ def crawl_and_clean_website(url, max_pages=15):
         
         if not batch_urls:
             break
-            
-        # Crawl batch: first fetch all via requests concurrently
+        
+        # First, try requests for all URLs
         requests_results = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(batch_urls)) as executor:
             future_to_url = {executor.submit(fetch_page_requests, u, headers): u for u in batch_urls}
@@ -299,6 +480,19 @@ def crawl_and_clean_website(url, max_pages=15):
             html, r_headers, r_cookies, status_code = requests_results.get(u, (None, {}, {}, None))
             
             try_playwright = False
+            
+            # Check if this is the first page to detect SPA
+            if u == root_cleaned or u == url.rstrip('/'):
+                if html and len(html) > 0:
+                    html_lower = html.lower()
+                    if ('id="root"' in html_lower or 
+                        'id="app"' in html_lower or 
+                        'id="__next"' in html_lower or
+                        'ng-version' in html_lower or
+                        'data-reactroot' in html_lower):
+                        is_spa_site = True
+                        print(f"Detected SPA site: {u}")
+            
             if html is None or status_code != 200:
                 try_playwright = True
             else:
@@ -307,8 +501,11 @@ def crawl_and_clean_website(url, max_pages=15):
                     el.decompose()
                 text_content_len = len(temp_soup.get_text().strip())
                 
-                # Refined SPA detection
-                if text_content_len < 600 and (
+                # For SPA sites, always use Playwright for navigation pages
+                if is_spa_site and u != root_cleaned:
+                    try_playwright = True
+                # Otherwise, check if content is too sparse
+                elif text_content_len < 600 and (
                     "id=\"root\"" in html.lower() or 
                     "id=\"app\"" in html.lower() or 
                     "id=\"__next\"" in html.lower() or 
@@ -324,7 +521,7 @@ def crawl_and_clean_website(url, max_pages=15):
                 cleaned = clean_page_content(u, html, r_headers, r_cookies)
                 crawled_pages_dict[u] = cleaned
                 crawled_this_batch.append(cleaned)
-                
+        
         # Fetch all Playwright URLs using a single browser instance
         if playwright_urls:
             pw_results = fetch_pages_playwright(playwright_urls, headers)
@@ -335,19 +532,19 @@ def crawl_and_clean_website(url, max_pages=15):
                     crawled_pages_dict[u] = cleaned
                     crawled_this_batch.append(cleaned)
                 else:
-                    # If playwright failed, try fallback to requests result if we had one
+                    # Fallback to requests result if available
                     req_html, req_headers, req_cookies, req_status = requests_results.get(u, (None, {}, {}, None))
                     if req_html is not None:
                         cleaned = clean_page_content(u, req_html, req_headers, req_cookies)
                         crawled_pages_dict[u] = cleaned
                         crawled_this_batch.append(cleaned)
-
+        
         newly_crawled = crawled_this_batch
         
-        # Extract links from successful crawls to enqueue
+        # Extract links from successful crawls using enhanced method
         new_discovered_links = []
         for page in newly_crawled:
-            discovered = extract_internal_links(page['url'], page['raw_html'])
+            discovered = extract_internal_links_enhanced(page['url'], page['raw_html'], base_domain)
             for d in discovered:
                 d_cleaned = d.rstrip('/')
                 if d_cleaned not in visited and d_cleaned not in to_crawl_queue and d_cleaned not in crawled_pages_dict:
@@ -363,28 +560,38 @@ def crawl_and_clean_website(url, max_pages=15):
     homepage_key = None
     for k in crawled_pages_dict.keys():
         parsed_k = urlparse(k)
-        if parsed_k.path.strip('/') == '' or k == url or k.rstrip('/') == url.rstrip('/'):
+        if parsed_k.path.strip('/') == '':
             homepage_key = k
             break
-            
+    
+    if not homepage_key:
+        for k in crawled_pages_dict.keys():
+            if k == url or k.rstrip('/') == url.rstrip('/'):
+                homepage_key = k
+                break
+    
     if not homepage_key and crawled_pages_dict:
         homepage_key = list(crawled_pages_dict.keys())[0]
-        
+    
     if not crawled_pages_dict:
-        # Fallback fetch
-        homepage_data = fetch_and_clean_page(url, headers)
-        if not homepage_data:
+        # Fallback fetch with Playwright for SPA
+        print(f"Warning: No pages crawled with requests, using Playwright for {url}")
+        pw_results = fetch_pages_playwright([url], headers)
+        if url in pw_results and pw_results[url][0] is not None:
+            html, pw_headers, pw_cookies, _ = pw_results[url]
+            homepage_data = clean_page_content(url, html, pw_headers, pw_cookies)
+            crawled_pages_dict[homepage_data['url']] = homepage_data
+            homepage_key = homepage_data['url']
+        else:
             raise Exception(f"Failed to connect to the target website: {url}")
-        crawled_pages_dict[homepage_data['url']] = homepage_data
-        homepage_key = homepage_data['url']
-        
+    
     homepage_data = crawled_pages_dict[homepage_key]
     
-    # Unique values from crawled_pages_dict to avoid duplicates in subpages_data
+    # Unique values from crawled_pages_dict
     unique_pages = list({v['url']: v for v in crawled_pages_dict.values()}.values())
     subpages_data = [p for p in unique_pages if p['url'] != homepage_key]
 
-    # Advanced Tech Stack Signature Scanner (Headers, Cookies, HTML, scripts)
+    # Advanced Tech Stack Signature Scanner
     detected_tech = set()
     all_pages = [homepage_data] + subpages_data
     
@@ -393,7 +600,7 @@ def crawl_and_clean_website(url, max_pages=15):
         headers_lower = {k.lower(): v.lower() for k, v in page["headers"].items()}
         cookies_lower = {k.lower(): v.lower() for k, v in page["cookies"].items()}
 
-        # -- Hosting / CDN / Servers --
+        # Hosting / CDN / Servers
         if 'cloudflare' in headers_lower.get('server', '') or 'cf-ray' in headers_lower:
             detected_tech.add('Cloudflare')
         if 'amazon' in headers_lower.get('server', '') or 'cloudfront' in headers_lower.get('via', ''):
@@ -411,7 +618,7 @@ def crawl_and_clean_website(url, max_pages=15):
         if 'gunicorn' in headers_lower.get('server', ''):
             detected_tech.add('Gunicorn (Python)')
         
-        # -- CMS & E-commerce --
+        # CMS & E-commerce
         if 'wp-content' in html_lower or 'wp-includes' in html_lower or 'wordpress' in html_lower:
             detected_tech.add('WordPress')
         if 'w-webflow' in html_lower:
@@ -425,7 +632,7 @@ def crawl_and_clean_website(url, max_pages=15):
         if 'squarespace' in html_lower:
             detected_tech.add('Squarespace')
             
-        # -- Frontend Frameworks & UI Assets --
+        # Frontend Frameworks & UI Assets
         if 'react' in html_lower or '_next' in html_lower or 'react-dom' in html_lower:
             detected_tech.add('React')
         if '_next/static' in html_lower or 'nextjs' in html_lower or '__next_data' in html_lower:
@@ -443,7 +650,7 @@ def crawl_and_clean_website(url, max_pages=15):
         if 'fontawesome' in html_lower or 'fa-' in html_lower:
             detected_tech.add('FontAwesome')
             
-        # -- Backends & Engines (via Cookies/Headers) --
+        # Backends & Engines
         if 'laravel' in html_lower or 'laravel_session' in cookies_lower:
             detected_tech.add('Laravel')
         if 'phpsessid' in cookies_lower or '.php' in html_lower:
@@ -455,7 +662,7 @@ def crawl_and_clean_website(url, max_pages=15):
         if 'csrftoken' in cookies_lower and 'django' in html_lower:
             detected_tech.add('Django (Python)')
             
-        # -- Analytics & Marketing Tools --
+        # Analytics & Marketing Tools
         if 'googletagmanager.com' in html_lower or 'gtag' in html_lower:
             detected_tech.add('Google Tag Manager')
         if 'google-analytics.com' in html_lower or 'ga(' in html_lower:
@@ -467,14 +674,13 @@ def crawl_and_clean_website(url, max_pages=15):
         if 'stripe.com' in html_lower:
             detected_tech.add('Stripe Payments')
 
-    # Build the unified structured corpus text
+    # Build unified structured corpus text
     corpus = f"=== SITE URL: {url} ===\n"
     
-    # Cap subpages sent to LLM to prevent exceeding rate limits (approx 6,000 TPM limit)
-    subpages_for_llm = subpages_data[:9] # max 10 pages total (homepage + 9 subpages)
+    # Cap subpages sent to LLM
+    subpages_for_llm = subpages_data[:9]
     num_pages = 1 + len(subpages_for_llm)
     
-    # Allocate a maximum of 14,000 characters total across all pages
     char_budget_per_page = max(800, 14000 // num_pages)
     
     homepage_text = homepage_data['cleaned_text']
@@ -490,7 +696,6 @@ def crawl_and_clean_website(url, max_pages=15):
             page_text = page_text[:char_budget_per_page] + "\n... [TRUNCATED TO FIT TOKEN LIMIT] ..."
         corpus += f"=== PAGE: Subpage ({parsed_p.path}) ===\n{page_text}\n\n"
 
-    # Chunking logic for large corpuses
     def chunk_text(text, max_len=12000):
         paragraphs = text.split('\n\n')
         chunks = []
@@ -501,7 +706,8 @@ def crawl_and_clean_website(url, max_pages=15):
             else:
                 chunks.append(current_chunk)
                 current_chunk = p + "\n\n"
-        chunks.append(current_chunk)
+        if current_chunk:
+            chunks.append(current_chunk)
         return chunks
 
     corpus_chunks = chunk_text(corpus)
@@ -510,8 +716,10 @@ def crawl_and_clean_website(url, max_pages=15):
     email_pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
     emails_found = list(set(re.findall(email_pattern, corpus)))
     
-    # Extract CEO name using robust patterns across raw HTML and cleaned text
+    # Extract CEO name - try multiple methods
     ceo_name = None
+    
+    # Method 1: Extract from crawled pages (existing method)
     all_html = homepage_data['raw_html'] + " ".join([p['raw_html'] for p in subpages_data])
     ceo_patterns = [
         r"CEO[\s\-:]*([A-Z][a-zA-Z.,\-\s]+)",
@@ -524,19 +732,32 @@ def crawl_and_clean_website(url, max_pages=15):
         r"([A-Z][a-zA-Z.,\-\s]+)[\s\-]*Chief Executive Officer",
         r"([A-Z][a-zA-Z.,\-\s]+)[\s\-]*Managing Director"
     ]
+    
     for pat in ceo_patterns:
         match = re.search(pat, all_html, re.IGNORECASE)
         if match:
             ceo_name = match.group(1).strip()
             break
-    if not ceo_name:
+    
+    # Method 2: If not found, try from JS bundle
+    if not ceo_name or len(ceo_name) < 3:
+        js_ceo = extract_ceo_from_js_bundle(root_homepage, headers)
+        if js_ceo:
+            ceo_name = js_ceo
+    
+    # Method 3: Search in corpus
+    if not ceo_name or len(ceo_name) < 3:
         for pat in ceo_patterns:
             match = re.search(pat, corpus, re.IGNORECASE)
             if match:
                 ceo_name = match.group(1).strip()
                 break
-    if ceo_name and len(ceo_name) > 100:
-        ceo_name = ceo_name[:100].strip()
+    
+    # Clean up CEO name
+    if ceo_name:
+        ceo_name = re.sub(r'[^\w\s\.\-]', '', ceo_name)
+        if len(ceo_name) > 100:
+            ceo_name = ceo_name[:100].strip()
 
     return {
         "url": url,
@@ -588,7 +809,9 @@ def analyze():
         # Step 2: Configure Groq API
         client = Groq(api_key=api_key)
 
-        # Construct strictly grounded prompt
+        # Construct strictly grounded prompt with CEO info if available
+        ceo_info = f"CEO/Founder: {crawled_data['ceo']}" if crawled_data.get('ceo') else "CEO/Founder: Not explicitly mentioned"
+        
         prompt = f"""
 You are a senior forensic IT systems architect, business auditor, and technical website cost estimator.
 Analyze the following multi-page crawled content from the website: {crawled_data['url']}.
@@ -601,11 +824,13 @@ CRAWLED WEBSITE CORPUS DATA:
 Technical Signatures Detected (Headers, Cookies, Scripts, HTML):
 {", ".join(crawled_data['detected_tech']) if crawled_data['detected_tech'] else "None detected"}
 
+Leadership Information: {ceo_info}
+
 Provide a comprehensive, professional analysis of this website in JSON format.
 Ensure you strictly match the following JSON schema:
 
 {{
-        "ceo": "CEO name if mentioned",
+        "ceo": "CEO name if mentioned - use the leadership information provided or extract from content",
         "title": "Refined/Cleaned Website Title or Company Name",
         "description": "Sleek description of what the company does",
         "overview": "Detailed overview of the company, their business domain, core value proposition, and operations.",
@@ -665,12 +890,13 @@ Ensure you strictly match the following JSON schema:
 CRITICAL GROUNDING RULES:
 1. Base your services list, business overview, audience, and stack ONLY on facts explicitly stated or directly implied in the crawled text corpus.
 2. If the crawled text does not contain details about a specific field (such as pricing, team size, founding year, or contact address), DO NOT make up details. Write "Not explicitly mentioned in website content" or similar.
-3. For the 'tech_stack' classification, list verified technologies we detected ({", ".join(crawled_data['detected_tech'])}) and logically infer other backend/database systems ONLY if standard for the CMS or framework explicitly detected (e.g., if WordPress is detected, PHP and MySQL are factually supported).
-4. Be highly realistic and detailed in the 'cost_estimation' breakdown for building a clone/similar system. Make sure the estimates reflect the developer resources, complexity, QA, and project management needed to build a site of this scale.
-5. Ensure the output is valid, parsable JSON, and DO NOT wrap it in markdown code blocks like ```json ... ```. Output raw JSON only.
+3. For the 'tech_stack' classification, list verified technologies we detected ({", ".join(crawled_data['detected_tech'])}) and logically infer other backend/database systems ONLY if standard for the CMS or framework explicitly detected.
+4. Be highly realistic and detailed in the 'cost_estimation' breakdown for building a clone/similar system.
+5. IMPORTANT: Use the leadership information provided to identify the CEO. The CEO name is {crawled_data.get('ceo') or 'to be extracted from content'}.
+6. Ensure the output is valid, parsable JSON, and DO NOT wrap it in markdown code blocks like ```json ... ```. Output raw JSON only.
 """
 
-        # Generate content with Groq JSON mode (with fallback for rate limits)
+        # Generate content with Groq JSON mode
         load_dotenv()
         model_to_use = data.get('model') or os.getenv('GROQ_MODEL') or 'llama-3.1-8b-instant'
         try:
@@ -709,16 +935,23 @@ CRITICAL GROUNDING RULES:
         # Parse JSON output
         analysis_result = json.loads(response_text)
         
-        # Inject metadata
+        # Inject metadata and ensure CEO is set correctly
         analysis_result['url'] = crawled_data['url']
         analysis_result['detected_tech_raw'] = crawled_data['detected_tech']
         analysis_result['crawled_pages'] = crawled_data['crawled_pages']
         analysis_result['emails'] = crawled_data.get('emails', [])
         
+        # Ensure CEO is set from crawled data if not in AI response
+        if crawled_data.get('ceo') and (not analysis_result.get('ceo') or analysis_result.get('ceo') == 'Not explicitly mentioned in website content'):
+            analysis_result['ceo'] = crawled_data['ceo']
+            if 'company_info' in analysis_result and 'owner' in analysis_result['company_info']:
+                if analysis_result['company_info']['owner'] == 'Not explicitly mentioned in website content':
+                    analysis_result['company_info']['owner'] = crawled_data['ceo']
+        
         return jsonify(analysis_result)
 
     except json.JSONDecodeError as je:
-        return jsonify({"error": f"AI model returned invalid JSON structure: {str(je)}", "raw_output": response_text}), 500
+        return jsonify({"error": f"AI model returned invalid JSON structure: {str(je)}", "raw_output": response_text if 'response_text' in locals() else ""}), 500
     except Exception as e:
         return jsonify({"error": f"AI Generation failed: {str(e)}"}), 500
 
@@ -739,10 +972,8 @@ def chat():
         return jsonify({"error": "Groq API key not found."}), 400
 
     try:
-        # Configure Groq API
         client = Groq(api_key=api_key)
 
-        # Construct System Prompts and Site context
         system_instruction = f"""You are a professional, senior IT consultant, software architect, and digital product estimator.
 You are discussing a website analysis report with a user. The website in focus is {website_data.get('title', 'this site')} ({website_data.get('url', '')}).
 
@@ -759,13 +990,12 @@ Here is the structured analysis of the website:
 Your goal:
 1. Act as a highly consultative expert. Answer questions about how this website functions, how to build a similar product, technical solutions, cost optimizations, and digital strategy.
 2. Provide technical, architectural, and financial insights (costs to implement, timelines, required resources).
-3. If they ask about costs, break them down clearly or suggest alternatives (e.g. standard CMS vs custom React SPA, cloud host costs, CRM integration).
-4. Always maintain a professional, helpful, and technically detailed tone. Keep answers structured with headings and lists where helpful.
-5. IMPORTANT: Answer ONLY based on the facts derived from the structured analysis, or clearly label your extensions as general architectural recommendations rather than hard facts about the target site.
+3. If they ask about costs, break them down clearly or suggest alternatives.
+4. Always maintain a professional, helpful, and technically detailed tone.
+5. IMPORTANT: Answer ONLY based on the facts derived from the structured analysis.
 """
         messages = [{"role": "system", "content": system_instruction}]
         
-        # Populate history dynamically, mapping roles correctly for OpenAI format compatibility
         for msg in history:
             role = msg.get('role')
             if role not in ['system', 'user', 'assistant']:
@@ -774,7 +1004,6 @@ Your goal:
             
         messages.append({"role": "user", "content": message})
 
-        # Generate chat completion (with fallback for rate limits)
         load_dotenv()
         model_to_use = data.get('model') or os.getenv('GROQ_MODEL') or 'llama-3.1-8b-instant'
         try:

@@ -16,7 +16,7 @@
     
     /* Typography */
     --font-primary: 'Outfit', sans-serif;
-    
+
     /* Transitions */
     --transition-fast: 0.15s ease;
     --transition-normal: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -45,12 +45,15 @@ body.brutalist-theme {
     width: 6px;
     height: 6px;
 }
+
 ::-webkit-scrollbar-track {
     background: var(--color-cream-bg);
 }
+
 ::-webkit-scrollbar-thumb {
     background: var(--color-brand-red);
 }
+
 ::-webkit-scrollbar-thumb:hover {
     background: #ffffff;
 }
@@ -562,9 +565,17 @@ body.brutalist-theme {
 }
 
 @keyframes rotateBrutalist {
-    0% { transform: rotate(0deg); }
-    50% { transform: rotate(180deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(180deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .loading-title {
@@ -640,6 +651,7 @@ body.brutalist-theme {
     color: var(--color-brand-red);
     background-color: var(--color-cream-bg);
 }
+
 .progress-step.active .step-label {
     color: var(--color-brand-red);
 }
@@ -649,12 +661,15 @@ body.brutalist-theme {
     background-color: var(--color-brand-red);
     color: var(--color-cream-bg);
 }
+
 .progress-step.done .step-num i {
     display: inline;
 }
+
 .progress-step.done .step-num span {
     display: none;
 }
+
 .progress-step.done .step-label {
     color: var(--color-dark-charcoal);
 }
@@ -961,7 +976,8 @@ body.brutalist-theme {
     margin-bottom: 3px;
 }
 
-.cost-amount, .time-duration {
+.cost-amount,
+.time-duration {
     font-size: 1.5rem;
     font-weight: 900;
     color: var(--color-brand-red);
@@ -978,7 +994,8 @@ body.brutalist-theme {
     text-align: left;
 }
 
-.cost-table th, .cost-table td {
+.cost-table th,
+.cost-table td {
     padding: 12px 15px;
     border-bottom: 1.5px solid #E6E2D9;
 }
@@ -1075,14 +1092,19 @@ body.brutalist-theme {
 .improvement-item.imp-seo {
     border-left: 5px solid var(--color-brand-red);
 }
+
 .improvement-item.imp-performance {
     border-left: 5px solid var(--color-dark-charcoal);
 }
+
 .improvement-item.imp-security {
-    border-left: 5px solid #22c55e; /* custom green fallback for security */
+    border-left: 5px solid #22c55e;
+    /* custom green fallback for security */
 }
+
 .improvement-item.imp-uiux {
-    border-left: 5px solid #f59e0b; /* custom yellow fallback for UX */
+    border-left: 5px solid #f59e0b;
+    /* custom yellow fallback for UX */
 }
 
 /* Right Side: AI Consultant Chat Panel styling */
@@ -1221,17 +1243,22 @@ body.brutalist-theme {
 .message.assistant .message-content p {
     margin-bottom: 8px;
 }
+
 .message.assistant .message-content p:last-child {
     margin-bottom: 0;
 }
+
 .message.assistant .message-content strong {
     color: var(--color-brand-red);
     font-weight: 700;
 }
-.message.assistant .message-content ul, .message.assistant .message-content ol {
+
+.message.assistant .message-content ul,
+.message.assistant .message-content ol {
     margin-left: 18px;
     margin-bottom: 8px;
 }
+
 .message.assistant .message-content li {
     margin-bottom: 3px;
 }
@@ -1363,6 +1390,7 @@ body.brutalist-theme {
     .dashboard {
         grid-template-columns: 1fr;
     }
+
     .chat-panel {
         position: fixed;
         bottom: 95px;
@@ -1441,13 +1469,16 @@ body.brutalist-theme {
         background: var(--color-brand-red);
         color: var(--color-cream-bg);
     }
+
     .metadata-grid {
         grid-template-columns: 1fr 1fr;
         gap: 20px;
     }
+
     .meta-col.text-right {
         text-align: left;
     }
+
     .showcase-grid {
         grid-template-columns: 1fr 1fr;
     }
@@ -1457,26 +1488,32 @@ body.brutalist-theme {
     .app-card {
         padding: 20px;
     }
+
     .outfit-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
     }
+
     .header-nav {
         width: 100%;
         justify-content: space-between;
     }
+
     .metadata-grid {
         grid-template-columns: 1fr;
     }
+
     .search-form {
         flex-direction: column;
     }
+
     .crawl-limit-wrapper {
         border-left: none;
         border-top: 2px solid var(--color-brand-red);
         padding: 15px 20px;
     }
+
     .btn-audit {
         padding: 15px;
         justify-content: center;
@@ -1833,4 +1870,3 @@ body.brutalist-theme {
         grid-template-columns: 1fr;
     }
 }
-

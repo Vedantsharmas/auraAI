@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,15 +9,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Style -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body class="brutalist-theme">
 
     <div class="outer-bezel">
         <!-- Main Card Container -->
         <div class="app-card">
-            
+
             <!-- Header Section -->
             <header class="outfit-header">
                 <a href="/" class="logo">
@@ -28,7 +32,7 @@
                     </span>
                     <span class="logo-text">AURA</span>
                 </a>
-                
+
                 <div class="header-nav">
                     <span class="nav-item">Analyzer</span>
                     <span class="nav-item">Consultant</span>
@@ -48,21 +52,22 @@
                         <h3>Configure Groq API Key</h3>
                         <span class="api-status-text" id="apiKeyStatusText">API Key: Checking...</span>
                     </div>
-                    <p class="drawer-desc">Provide your Groq API Key. It remains strictly local in your browser and is never stored on our servers.</p>
+                    <p class="drawer-desc">Provide your Groq API Key. It remains strictly local in your browser and is
+                        never stored on our servers.</p>
                     <div class="input-group">
                         <input type="password" id="apiKeyInput" placeholder="gsk_...">
                         <button class="btn btn-primary" id="saveApiKeyBtn">Save Key</button>
                     </div>
                     <div class="drawer-actions">
-                        <button class="btn-link text-danger" id="clearApiKeyBtn">Clear Saved Key</button>
-                        <a href="https://console.groq.com/keys" target="_blank" class="api-link">Get Free Key</a>
+                        <a href="https://console.groq.com/keys" target="_blank" class="api-link">Get Free Key <i
+                                class="fa-solid fa-arrow-up-right-from-square"></i></a>
                     </div>
                 </div>
             </div>
 
             <!-- Hero Section containing Title, Metadata, Search Form, and 4-Column Showcase -->
             <section class="hero-section" id="heroSection">
-                
+
                 <!-- Giant Brand Header -->
                 <div class="brand-hero">
                     <h1 class="brand-title">AURA AI<span class="registered-symbol">®</span></h1>
@@ -80,14 +85,17 @@
                     <div class="meta-col">
                         <span class="meta-label">WHY</span>
                         <p class="meta-val justify-text">
-                            Created by ++aura team, this store and signature system celebrates deep website forensics. It scans web technologies, generates technical documentation, and formulates precise build estimates.
+                            Created by ++aura team, this store and signature system celebrates deep website forensics.
+                            It scans web technologies, generates technical documentation, and formulates precise build
+                            estimates.
                         </p>
                     </div>
                     <div class="meta-col">
                         <span class="meta-label">UTILITIES</span>
                         <div class="meta-links">
                             <span class="meta-link-desc">Groq API required for AI.</span>
-                            <a href="https://console.groq.com/keys" target="_blank" class="meta-link">Get API Key</a>
+                            <a href="https://console.groq.com/keys" target="_blank" class="meta-link">Get API Key <i
+                                    class="fa-solid fa-arrow-up-right-from-square"></i></a>
                         </div>
                     </div>
                     <div class="meta-col text-right">
@@ -122,8 +130,10 @@
 
                     <div class="quick-examples">
                         <span class="examples-label">TRY AUDITS:</span>
-                        <button type="button" class="example-btn" data-url="https://www.vihilinfotech.com">VIHIL INFOTECH</button>
-                        <button type="button" class="example-btn" data-url="https://news.ycombinator.com">HACKER NEWS</button>
+                        <button type="button" class="example-btn" data-url="https://www.vihilinfotech.com">VIHIL
+                            INFOTECH</button>
+                        <button type="button" class="example-btn" data-url="https://news.ycombinator.com">HACKER
+                            NEWS</button>
                         <button type="button" class="example-btn" data-url="https://react.dev">REACT.DEV</button>
                     </div>
                 </div>
@@ -137,7 +147,7 @@
                 </div>
                 <h3 class="loading-title">AUDITING WEBSITE...</h3>
                 <p class="loading-subtitle" id="loadingStatusText">Connecting to target website...</p>
-                
+
                 <div class="progress-steps">
                     <div class="progress-step active" id="step1">
                         <span class="step-num">✓ 1</span>
@@ -162,7 +172,7 @@
             <main class="dashboard hidden" id="dashboard">
                 <!-- Left Column: Detailed Analysis Results -->
                 <div class="analysis-panel">
-                    
+
                     <!-- Overview Card -->
                     <div class="card card-overview">
                         <div class="card-header">
@@ -174,7 +184,7 @@
                             <p class="site-description" id="siteDescription">Tagline/Description</p>
                             <div class="mini-divider"></div>
                             <p class="site-overview" id="siteOverview">Detailed analysis overview text...</p>
-                            
+
                             <div class="mini-divider"></div>
                             <div class="company-meta-grid">
                                 <div class="company-meta-item" id="metaItemOwner" style="display:none;">
@@ -224,7 +234,8 @@
                             <h2>Crawled Map & Links</h2>
                         </div>
                         <div class="card-body">
-                            <p class="section-instruction">Visual nodes showing discovered internal pages fetched by the crawler.</p>
+                            <p class="section-instruction">Visual nodes showing discovered internal pages fetched by the
+                                crawler.</p>
                             <div class="crawler-map-viewport">
                                 <div class="crawler-map-root" id="crawlerMapRoot">
                                     <!-- Flowchart generated by JS -->
@@ -274,7 +285,7 @@
                                     <span class="time-duration" id="costTimeline">3-4 Months</span>
                                 </div>
                             </div>
-                            
+
                             <div class="cost-table-container">
                                 <table class="cost-table">
                                     <thead>
@@ -343,7 +354,8 @@
                         <!-- Default welcome message -->
                         <div class="message system-message">
                             <div class="message-content">
-                                <p><strong>Consultant Initialized!</strong> Ask me anything about the audited site, for example:</p>
+                                <p><strong>Consultant Initialized!</strong> Ask me anything about the audited site, for
+                                    example:</p>
                                 <div class="chat-chips" id="quickQuestionsContainer">
                                     <!-- Suggested questions populated by JS -->
                                 </div>
@@ -394,4 +406,5 @@
     <!-- Scripts -->
     <script src="/static/app.js"></script>
 </body>
+
 </html>
