@@ -3,273 +3,364 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Website Analyzer & Chat Consultant</title>
-    <!-- Google Fonts -->
+    <title>AURA AI — Deep Website Analysis & Consultation</title>
+    <!-- Google Fonts: Outfit for sleek geometric brutalism -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Style -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-    <!-- Background Gradient Orbs -->
-    <div class="radial-bg orb-1"></div>
-    <div class="radial-bg orb-2"></div>
-    <div class="radial-bg orb-3"></div>
+<body class="brutalist-theme">
 
-    <!-- Floating Ambient Particles -->
-    <div class="particle p-1"></div>
-    <div class="particle p-2"></div>
-    <div class="particle p-3"></div>
-    <div class="particle p-4"></div>
-
-    <div class="app-container">
-        <!-- Floating Header -->
-        <header class="glass-header">
-            <div class="logo">
-                <i class="fa-solid fa-wand-magic-sparkles logo-icon"></i>
-                <span class="logo-text">AURA <span class="logo-accent">WebAI</span></span>
-            </div>
+    <div class="outer-bezel">
+        <!-- Main Card Container -->
+        <div class="app-card">
             
-            <div class="api-key-config">
-                <span class="api-status-dot" id="apiKeyStatusDot"></span>
-                <span class="api-status-text" id="apiKeyStatusText">API Key: Checking...</span>
-                <button class="btn-icon" id="toggleApiBtn" title="Configure API Key">
-                    <i class="fa-solid fa-key"></i>
-                </button>
-            </div>
-        </header>
-
-        <!-- API Config Drawer (Slide down) -->
-        <div class="api-drawer glass-panel" id="apiDrawer">
-            <h3>Configure Google Gemini API Key</h3>
-            <p class="drawer-desc">Provide your Gemini API Key. It remains strictly local in your browser and is never stored on our servers.</p>
-            <div class="input-group">
-                <i class="fa-solid fa-lock input-icon"></i>
-                <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
-                <button class="btn btn-primary" id="saveApiKeyBtn">Save Key</button>
-            </div>
-            <div class="drawer-actions">
-                <button class="btn btn-link text-danger" id="clearApiKeyBtn">Clear Saved Key</button>
-                <a href="https://aistudio.google.com/" target="_blank" class="api-link">Get Free Key <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-            </div>
-        </div>
-
-        <!-- Hero / Search Section -->
-        <section class="hero-section" id="heroSection">
-            <h1 class="hero-title animate-text">Deep Website Analysis & AI Consultation</h1>
-            <p class="hero-subtitle">Input any website URL to extract its structure, services, tech stack, and build costs, then chat directly with an AI Technical Consultant about it.</p>
-            
-            <div class="input-gradient-border">
-                <form class="search-container glass-panel" id="searchForm">
-                    <i class="fa-solid fa-globe search-icon"></i>
-                    <input type="text" id="urlInput" placeholder="Enter website URL (e.g., vihilinfotech.com)" required>
-                    <button type="submit" class="btn btn-gradient" id="analyzeBtn">
-                        <span>Analyze URL</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                </form>
-            </div>
-
-            <div class="quick-examples">
-                <span>Try examples:</span>
-                <button class="btn-pill example-btn" data-url="https://www.vihilinfotech.com">Vihil InfoTech</button>
-                <button class="btn-pill example-btn" data-url="https://news.ycombinator.com">Hacker News</button>
-                <button class="btn-pill example-btn" data-url="https://react.dev">React.dev</button>
-            </div>
-        </section>
-
-        <!-- Multi-step Loading Section -->
-        <section class="loading-section glass-panel hidden" id="loadingSection">
-            <div class="spinner-container">
-                <div class="double-spinner"></div>
-            </div>
-            <h3 class="loading-title">Analyzing Website...</h3>
-            <p class="loading-subtitle" id="loadingStatusText">Connecting to target site...</p>
-            
-            <div class="progress-steps">
-                <div class="progress-step active" id="step1">
-                    <span class="step-num"><i class="fa-solid fa-check"></i>1</span>
-                    <span class="step-label">Fetch HTML</span>
-                </div>
-                <div class="progress-step" id="step2">
-                    <span class="step-num"><i class="fa-solid fa-check"></i>2</span>
-                    <span class="step-label">Extract Content</span>
-                </div>
-                <div class="progress-step" id="step3">
-                    <span class="step-num"><i class="fa-solid fa-check"></i>3</span>
-                    <span class="step-label">AI Analysis</span>
-                </div>
-                <div class="progress-step" id="step4">
-                    <span class="step-num"><i class="fa-solid fa-check"></i>4</span>
-                    <span class="step-label">Formulate Costs</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Main Dashboard Dashboard (Side by Side) -->
-        <main class="dashboard hidden" id="dashboard">
-            <!-- Left Side: Analysis Results -->
-            <div class="analysis-panel">
+            <!-- Header Section -->
+            <header class="outfit-header">
+                <a href="/" class="logo">
+                    <span class="logo-symbol">++</span>
+                    <span class="logo-text">AURA</span>
+                </a>
                 
-                <!-- Overview Card -->
-                <div class="card glass-panel animate-fade-in">
-                    <div class="card-header">
-                        <i class="fa-solid fa-circle-info card-icon"></i>
-                        <h2>Company Overview</h2>
-                    </div>
-                    <div class="card-body">
-                        <h3 class="site-title" id="siteTitle">Website Name</h3>
-                        <p class="site-url" id="siteUrl">https://example.com</p>
-                        <p class="site-description text-accent" id="siteDescription">Tagline/Description</p>
-                        <hr class="divider">
-                        <p class="site-overview" id="siteOverview">Detailed analysis overview text...</p>
+                <div class="header-nav">
+                    <span class="nav-item">Analyzer</span>
+                    <span class="nav-item">Consultant</span>
+                    
+                    <!-- Color Dots: The red dot serves as the API Status and Toggle button -->
+                    <div class="theme-dots" id="toggleApiBtn" title="Configure API Key">
+                        <span class="dot dot-red" id="apiKeyStatusDot"></span>
+                        <span class="dot dot-white"></span>
+                        <span class="dot dot-black"></span>
                     </div>
                 </div>
+            </header>
 
-                <!-- Interactive Crawled Map Card -->
-                <div class="card glass-panel animate-fade-in delay-100">
-                    <div class="card-header">
-                        <i class="fa-solid fa-network-wired card-icon"></i>
-                        <h2>Crawled Map & Links</h2>
+            <!-- API Status Text & Configuration Drawer (Slide down) -->
+            <div class="api-drawer" id="apiDrawer">
+                <div class="api-drawer-content">
+                    <div class="drawer-header">
+                        <h3>Configure Groq API Key</h3>
+                        <span class="api-status-text" id="apiKeyStatusText">API Key: Checking...</span>
                     </div>
-                    <div class="card-body">
-                        <p class="section-instruction">Visual nodes showing discovered internal pages fetched by the crawler.</p>
-                        <div class="crawler-map-viewport">
-                            <div class="crawler-map-root" id="crawlerMapRoot">
-                                <!-- Dynamically generated flowchart -->
-                            </div>
-                        </div>
+                    <p class="drawer-desc">Provide your Groq API Key. It remains strictly local in your browser and is never stored on our servers.</p>
+                    <div class="input-group">
+                        <input type="password" id="apiKeyInput" placeholder="gsk_...">
+                        <button class="btn btn-primary" id="saveApiKeyBtn">Save Key</button>
                     </div>
-                </div>
-
-                <!-- Services Card -->
-                <div class="card glass-panel animate-fade-in delay-150">
-                    <div class="card-header">
-                        <i class="fa-solid fa-layer-group card-icon"></i>
-                        <h2>Core Services & Functions</h2>
+                    <div class="drawer-actions">
+                        <button class="btn-link text-danger" id="clearApiKeyBtn">Clear Saved Key</button>
+                        <a href="https://console.groq.com/keys" target="_blank" class="api-link">Get Free Key <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
                     </div>
-                    <div class="card-body">
-                        <div class="services-list" id="servicesList">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tech Stack Card -->
-                <div class="card glass-panel animate-fade-in delay-200">
-                    <div class="card-header">
-                        <i class="fa-solid fa-cubes card-icon"></i>
-                        <h2>Tech Stack Architecture</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="tech-stack-container" id="techStackContainer">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cost Estimation Card -->
-                <div class="card glass-panel cost-card animate-fade-in delay-250">
-                    <div class="card-header">
-                        <i class="fa-solid fa-money-bill-trend-up card-icon"></i>
-                        <h2>Clone Build Cost Estimate</h2>
-                        <span class="premium-badge"><i class="fa-solid fa-crown"></i> High Factual Accuracy</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="cost-summary">
-                            <div class="cost-value">
-                                <span class="cost-label">Total Est. Cost</span>
-                                <span class="cost-amount" id="totalCost">₹1,50,000 - ₹3,00,000</span>
-                            </div>
-                            <div class="cost-time">
-                                <span class="cost-label">Timeframe</span>
-                                <span class="time-duration" id="costTimeline">3-4 Months</span>
-                            </div>
-                        </div>
-                        
-                        <div class="cost-table-container">
-                            <table class="cost-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 25%">Development Module</th>
-                                        <th style="width: 20%">Budget Weight</th>
-                                        <th style="width: 20%">Est. Cost</th>
-                                        <th style="width: 35%">Scope & Rationale</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="costBreakdownBody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Audience & Improvements -->
-                <div class="card glass-panel animate-fade-in delay-300">
-                    <div class="card-header">
-                        <i class="fa-solid fa-chart-line card-icon"></i>
-                        <h2>Audience & Suggestions</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="sub-section">
-                            <h3>Target Audience</h3>
-                            <p class="site-overview" id="audienceDesc">Audience overview...</p>
-                            <div class="segments-container" id="audienceSegments">
-                                <!-- Badges -->
-                            </div>
-                        </div>
-                        <hr class="divider">
-                        <div class="sub-section">
-                            <h3>Actionable Improvements</h3>
-                            <div class="improvements-list" id="improvementsList">
-                                <!-- List items -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Right Side: AI Consultant Chat Panel -->
-            <div class="chat-panel glass-panel">
-                <div class="chat-header">
-                    <div class="chat-bot-avatar">
-                        <i class="fa-solid fa-robot"></i>
-                        <span class="status-indicator online"></span>
-                    </div>
-                    <div class="chat-title-info">
-                        <h3>AI Tech Consultant</h3>
-                        <p>Ask about architecture, costs, or scaling</p>
-                    </div>
-                    <button class="btn-icon" id="clearChatBtn" title="Reset Chat">
-                        <i class="fa-solid fa-rotate-right"></i>
-                    </button>
-                </div>
-
-                <div class="chat-messages" id="chatMessages">
-                    <!-- Default welcome message -->
-                    <div class="message system-message">
-                        <div class="message-content">
-                            <p><strong>Consultant Initialized!</strong> Ask me anything about the analyzed site, for example:</p>
-                            <div class="chat-chips" id="quickQuestionsContainer">
-                                <!-- Suggested questions -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="chat-input-area">
-                    <textarea id="chatInput" placeholder="Ask details about code clone, security, stack choices, pricing..." rows="1"></textarea>
-                    <button id="sendChatBtn" class="btn btn-primary btn-round" disabled>
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
                 </div>
             </div>
-        </main>
+
+            <!-- Hero Section containing Title, Metadata, Search Form, and 4-Column Showcase -->
+            <section class="hero-section" id="heroSection">
+                
+                <!-- Giant Brand Header -->
+                <div class="brand-hero">
+                    <h1 class="brand-title">AURA AI<span class="registered-symbol">®</span></h1>
+                </div>
+
+                <!-- Thin Red Divider Line -->
+                <div class="outfit-divider"></div>
+
+                <!-- Metadata Grid (4 Columns) -->
+                <div class="metadata-grid">
+                    <div class="meta-col">
+                        <span class="meta-label">AURA AI</span>
+                        <span class="meta-val">FORENSIC AUDITOR</span>
+                    </div>
+                    <div class="meta-col">
+                        <span class="meta-label">WHY</span>
+                        <p class="meta-val justify-text">
+                            Created by ++aura team, this store and signature system celebrates deep website forensics. It scans web technologies, generates technical documentation, and formulates precise build estimates.
+                        </p>
+                    </div>
+                    <div class="meta-col">
+                        <span class="meta-label">UTILITIES</span>
+                        <div class="meta-links">
+                            <span class="meta-link-desc">Groq API required for AI.</span>
+                            <a href="https://console.groq.com/keys" target="_blank" class="meta-link">Get API Key <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                        </div>
+                    </div>
+                    <div class="meta-col text-right">
+                        <span class="meta-label">EDITION</span>
+                        <span class="meta-val">© 2026</span>
+                    </div>
+                </div>
+
+                <!-- Red Divider Line -->
+                <div class="outfit-divider"></div>
+
+                <!-- Minimalist Search Input Bar -->
+                <div class="search-section">
+                    <form class="search-form" id="searchForm">
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-globe search-icon"></i>
+                            <input type="text" id="urlInput" placeholder="ENTER WEBSITE URL TO AUDIT (e.g., vihilinfotech.com)" required>
+                        </div>
+                        <div class="crawl-limit-wrapper">
+                            <i class="fa-solid fa-spider crawl-icon" title="Scan Depth"></i>
+                            <select id="maxPagesSelect" title="Scan Depth">
+                                <option value="3">Quick Scan (3 pgs)</option>
+                                <option value="10">Standard (10 pgs)</option>
+                                <option value="25" selected>Deep Scan (25 pgs)</option>
+                                <option value="50">Full Audit (50 pgs)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-audit" id="analyzeBtn">
+                            <span>AUDIT WEBSITE</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+
+                    <div class="quick-examples">
+                        <span class="examples-label">TRY AUDITS:</span>
+                        <button type="button" class="example-btn" data-url="https://www.vihilinfotech.com">VIHIL INFOTECH</button>
+                        <button type="button" class="example-btn" data-url="https://news.ycombinator.com">HACKER NEWS</button>
+                        <button type="button" class="example-btn" data-url="https://react.dev">REACT.DEV</button>
+                    </div>
+                </div>
+
+                <!-- Showcase Product Grid (4 Columns) -->
+                <div class="showcase-grid">
+                    <div class="showcase-card">
+                        <div class="image-container">
+                            <img src="/static/images/showcase_1.png" alt="Showcase Model Neck">
+                        </div>
+                        <div class="showcase-caption">
+                            <span>; time™ (off)</span>
+                        </div>
+                    </div>
+                    <div class="showcase-card">
+                        <div class="image-container">
+                            <img src="/static/images/showcase_2.png" alt="Showcase Cap">
+                        </div>
+                        <div class="showcase-caption">
+                            <span>++ CAP</span>
+                        </div>
+                    </div>
+                    <div class="showcase-card">
+                        <div class="image-container">
+                            <img src="/static/images/showcase_3.png" alt="Showcase Sweatshirt">
+                        </div>
+                        <div class="showcase-caption">
+                            <span>++ SWEATSHIRT</span>
+                        </div>
+                    </div>
+                    <div class="showcase-card">
+                        <div class="image-container">
+                            <img src="/static/images/showcase_4.png" alt="Showcase Backpack">
+                        </div>
+                        <div class="showcase-caption">
+                            <span>++ PACK</span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Loading Section (Simulates crawling steps) -->
+            <section class="loading-section hidden" id="loadingSection">
+                <div class="spinner-wrapper">
+                    <div class="brutalist-loader"></div>
+                </div>
+                <h3 class="loading-title">AUDITING WEBSITE...</h3>
+                <p class="loading-subtitle" id="loadingStatusText">Connecting to target website...</p>
+                
+                <div class="progress-steps">
+                    <div class="progress-step active" id="step1">
+                        <span class="step-num"><i class="fa-solid fa-check"></i>1</span>
+                        <span class="step-label">Fetch HTML</span>
+                    </div>
+                    <div class="progress-step" id="step2">
+                        <span class="step-num"><i class="fa-solid fa-check"></i>2</span>
+                        <span class="step-label">Extract Content</span>
+                    </div>
+                    <div class="progress-step" id="step3">
+                        <span class="step-num"><i class="fa-solid fa-check"></i>3</span>
+                        <span class="step-label">AI Analysis</span>
+                    </div>
+                    <div class="progress-step" id="step4">
+                        <span class="step-num"><i class="fa-solid fa-check"></i>4</span>
+                        <span class="step-label">Formulate Costs</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main Dashboard Panel (Shown after Crawl finishes) -->
+            <main class="dashboard hidden" id="dashboard">
+                <!-- Left Column: Detailed Analysis Results -->
+                <div class="analysis-panel">
+                    
+                    <!-- Overview Card -->
+                    <div class="card card-overview">
+                        <div class="card-header">
+                            <i class="fa-solid fa-circle-info card-icon"></i>
+                            <h2>Overview</h2>
+                        </div>
+                        <div class="card-body">
+                            <h3 class="site-title" id="siteTitle">Website Name</h3>
+                            <a href="#" class="site-url" id="siteUrl" target="_blank">https://example.com</a>
+                            <p class="site-description" id="siteDescription">Tagline/Description</p>
+                            <div class="mini-divider"></div>
+                            <p class="site-overview" id="siteOverview">Detailed analysis overview text...</p>
+                            
+                            <div class="audit-meta-row">
+                                <p class="site-overview" id="siteCEO" style="display:none;"></p>
+                                <p class="site-overview" id="siteEmails" style="display:none;"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crawled Map Card -->
+                    <div class="card card-crawler">
+                        <div class="card-header">
+                            <i class="fa-solid fa-network-wired card-icon"></i>
+                            <h2>Crawled Map & Links</h2>
+                        </div>
+                        <div class="card-body">
+                            <p class="section-instruction">Visual nodes showing discovered internal pages fetched by the crawler.</p>
+                            <div class="crawler-map-viewport">
+                                <div class="crawler-map-root" id="crawlerMapRoot">
+                                    <!-- Flowchart generated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Services Card -->
+                    <div class="card card-services">
+                        <div class="card-header">
+                            <i class="fa-solid fa-layer-group card-icon"></i>
+                            <h2>Core Services & Functions</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="services-list" id="servicesList">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tech Stack Card -->
+                    <div class="card card-tech">
+                        <div class="card-header">
+                            <i class="fa-solid fa-cubes card-icon"></i>
+                            <h2>Tech Stack Architecture</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="tech-stack-container" id="techStackContainer">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Estimation Card -->
+                    <div class="card card-cost">
+                        <div class="card-header">
+                            <i class="fa-solid fa-money-bill-trend-up card-icon"></i>
+                            <h2>Clone Build Cost Estimate</h2>
+                            <span class="premium-badge"><i class="fa-solid fa-crown"></i> High Factual Accuracy</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="cost-summary">
+                                <div class="cost-value">
+                                    <span class="cost-label">Total Est. Cost</span>
+                                    <span class="cost-amount" id="totalCost">₹1,50,000 - ₹3,00,000</span>
+                                </div>
+                                <div class="cost-time">
+                                    <span class="cost-label">Timeframe</span>
+                                    <span class="time-duration" id="costTimeline">3-4 Months</span>
+                                </div>
+                            </div>
+                            
+                            <div class="cost-table-container">
+                                <table class="cost-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Development Module</th>
+                                            <th>Budget Weight</th>
+                                            <th>Est. Cost</th>
+                                            <th>Scope & Rationale</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="costBreakdownBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audience & Improvements -->
+                    <div class="card card-suggestions">
+                        <div class="card-header">
+                            <i class="fa-solid fa-chart-line card-icon"></i>
+                            <h2>Audience & Suggestions</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="sub-section">
+                                <h3>Target Audience</h3>
+                                <p class="site-overview" id="audienceDesc">Audience overview...</p>
+                                <div class="segments-container" id="audienceSegments">
+                                    <!-- Badges populated by JS -->
+                                </div>
+                            </div>
+                            <div class="mini-divider"></div>
+                            <div class="sub-section">
+                                <h3>Actionable Improvements</h3>
+                                <div class="improvements-list" id="improvementsList">
+                                    <!-- List items populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right Column: AI Consultant Chat Panel -->
+                <div class="chat-panel">
+                    <div class="chat-header">
+                        <div class="chat-bot-avatar">
+                            <i class="fa-solid fa-robot"></i>
+                            <span class="status-indicator online"></span>
+                        </div>
+                        <div class="chat-title-info">
+                            <h3>AI Tech Consultant</h3>
+                            <p>Ask about architecture, costs, or scaling</p>
+                        </div>
+                        <button class="btn-clear-chat" id="clearChatBtn" title="Reset Chat">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Default welcome message -->
+                        <div class="message system-message">
+                            <div class="message-content">
+                                <p><strong>Consultant Initialized!</strong> Ask me anything about the audited site, for example:</p>
+                                <div class="chat-chips" id="quickQuestionsContainer">
+                                    <!-- Suggested questions populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-input-area">
+                        <textarea id="chatInput" placeholder="Ask details about code clone, security, stack choices, pricing..." rows="1"></textarea>
+                        <button id="sendChatBtn" class="btn-send-chat" disabled>
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </main>
+
+        </div>
     </div>
 
     <!-- Toast Notification -->

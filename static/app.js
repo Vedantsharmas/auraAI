@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const searchForm = document.getElementById('searchForm');
     const urlInput = document.getElementById('urlInput');
+    const maxPagesSelect = document.getElementById('maxPagesSelect');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const heroSection = document.getElementById('heroSection');
     const exampleBtns = document.querySelectorAll('.example-btn');
@@ -47,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const toastMessage = document.getElementById('toastMessage');
 
     // App State
-    let localApiKey = localStorage.getItem('gemini_api_key') || '';
+    let localApiKey = localStorage.getItem('groq_api_key') || '';
     let currentAnalysisData = null;
     let chatHistory = [];
     let loadingInterval = null;
@@ -63,11 +64,19 @@ document.addEventListener('DOMContentLoaded', () => {
         apiDrawer.classList.toggle('open');
     });
 
+    const metaConfigureApiKey = document.getElementById('metaConfigureApiKey');
+    if (metaConfigureApiKey) {
+        metaConfigureApiKey.addEventListener('click', (e) => {
+            e.preventDefault();
+            apiDrawer.classList.toggle('open');
+        });
+    }
+
     saveApiKeyBtn.addEventListener('click', () => {
         const key = apiKeyInput.value.trim();
         if (key) {
             localApiKey = key;
-            localStorage.setItem('gemini_api_key', key);
+            localStorage.setItem('groq_api_key', key);
             updateApiKeyUI();
             apiDrawer.classList.remove('open');
             showToast('API Key saved locally!', 'success');
@@ -78,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearApiKeyBtn.addEventListener('click', () => {
         localApiKey = '';
-        localStorage.removeItem('gemini_api_key');
+        localStorage.removeItem('groq_api_key');
         apiKeyInput.value = '';
         updateApiKeyUI();
         apiDrawer.classList.remove('open');
@@ -120,7 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     url: url,
-                    apiKey: localApiKey
+                    apiKey: localApiKey,
+                    maxPages: maxPagesSelect ? parseInt(maxPagesSelect.value, 10) : 25
                 })
             });
 
@@ -211,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ url: 'http://test-key-check.com', apiKey: 'CHECK_STATUS_ONLY' })
             });
             // If it returns a 500 or 400 with "crawl failed" or similar, it means the key exists!
-            // If it returns "Gemini API key not found", it means key is missing.
+            // If it returns "Groq API key not found", it means key is missing.
             const data = await response.json();
             if (data.error && data.error.includes('key not found')) {
                 apiKeyStatusDot.classList.remove('active');
@@ -236,29 +246,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function runProgressSteps() {
         let step = 1;
+        let crawlSubpageIndex = 2;
         clearInterval(loadingInterval);
 
         loadingInterval = setInterval(() => {
             if (step === 1) {
                 step1.className = 'progress-step done';
                 step2.className = 'progress-step active';
-                loadingStatusText.textContent = 'Crawling subpages (About, Services, Contact)...';
-                step = 2;
+                loadingStatusText.textContent = 'Crawling website pages: discovered index...';
+                step = 1.5;
+            } else if (step === 1.5) {
+                if (crawlSubpageIndex < 28) {
+                    loadingStatusText.textContent = `Crawling subpages concurrently (fetched ${crawlSubpageIndex} pages)...`;
+                    crawlSubpageIndex += Math.floor(Math.random() * 4) + 2;
+                } else {
+                    step2.className = 'progress-step done';
+                    step3.className = 'progress-step active';
+                    loadingStatusText.textContent = 'Running deep signature checks on headers & scripts...';
+                    step = 2;
+                }
             } else if (step === 2) {
-                step2.className = 'progress-step done';
-                step3.className = 'progress-step active';
-                loadingStatusText.textContent = 'Running deep signatures checks on headers & scripts...';
+                loadingStatusText.textContent = 'Analyzing server cookies and technology architectures...';
+                step = 2.5;
+            } else if (step === 2.5) {
+                loadingStatusText.textContent = 'Performing strictly grounded Groq AI analysis on site corpus...';
                 step = 3;
             } else if (step === 3) {
-                loadingStatusText.textContent = 'Performing strictly grounded Gemini AI analysis...';
-                step = 4;
-            } else if (step === 4) {
+                loadingStatusText.textContent = 'Synthesizing layout data and generating target audience profiles...';
+                step = 3.5;
+            } else if (step === 3.5) {
                 step3.className = 'progress-step done';
                 step4.className = 'progress-step active';
-                loadingStatusText.textContent = 'Compiling budget breakdowns and final consultant node...';
+                loadingStatusText.textContent = 'Compiling budget breakdowns and building clone estimates...';
+                step = 4;
+            } else if (step === 4) {
+                loadingStatusText.textContent = 'Finalizing report nodes...';
                 clearInterval(loadingInterval);
             }
-        }, 2200);
+        }, 1800);
     }
 
     function completeAllSteps() {
@@ -288,10 +313,34 @@ document.addEventListener('DOMContentLoaded', () => {
         siteUrl.target = '_blank';
         siteDescription.textContent = data.description || 'No description extracted';
         siteOverview.textContent = data.overview || '';
-
+        // Populate extracted emails
+        const siteEmails = document.getElementById('siteEmails');
+        if (siteEmails) {
+            const emails = data.emails && data.emails.length > 0 ? data.emails.join(', ') : 'No email found';
+            siteEmails.textContent = emails;
+            // Unhide if emails exist
+            siteEmails.style.display = data.emails && data.emails.length > 0 ? 'block' : 'none';
+        }
+        // Populate extracted CEO name
+        const siteCEO = document.getElementById('siteCEO');
+        if (siteCEO) {
+            const ceo = data.ceo && data.ceo.trim() ? data.ceo : (data.company_info && data.company_info.leadership ? data.company_info.leadership : '');
+            siteCEO.textContent = ceo || 'CEO not found';
+            // Show if CEO info exists
+            siteCEO.style.display = ceo ? 'block' : 'none';
+        }
         // 1. Render Interactive Crawler map tree
         crawlerMapRoot.innerHTML = '';
         
+        const pageCount = data.crawled_pages ? data.crawled_pages.length : 0;
+        const isGridLayout = pageCount > 8;
+        
+        if (isGridLayout) {
+            crawlerMapRoot.classList.add('grid-layout');
+        } else {
+            crawlerMapRoot.classList.remove('grid-layout');
+        }
+
         // Add Homepage Node
         const homeNode = document.createElement('div');
         homeNode.className = 'map-node root';
@@ -307,33 +356,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.crawled_pages && data.crawled_pages.length > 1) {
             // Skips the first page (homepage)
             data.crawled_pages.slice(1).forEach(pageUrl => {
-                // Add connector line
-                const connector = document.createElement('div');
-                connector.className = 'map-connection active';
-                crawlerMapRoot.appendChild(connector);
+                // Add connector line only for flow layout
+                if (!isGridLayout) {
+                    const connector = document.createElement('div');
+                    connector.className = 'map-connection active';
+                    crawlerMapRoot.appendChild(connector);
+                }
 
                 // Add Node
                 const subNode = document.createElement('div');
                 subNode.className = 'map-node subpage';
-                const parsedSub = new URL(pageUrl);
+                
+                let parsedSub;
+                try {
+                    parsedSub = new URL(pageUrl);
+                } catch(e) {
+                    parsedSub = { pathname: pageUrl, hostname: '' };
+                }
                 
                 // Get label from path name
                 let pathLabel = parsedSub.pathname.replace(/^\/|\/$/g, '');
-                if (pathLabel.length > 12) pathLabel = pathLabel.substring(0, 10) + '...';
+                if (pathLabel.length > 15) pathLabel = pathLabel.substring(0, 13) + '...';
                 if (!pathLabel) pathLabel = 'Subpage';
 
                 subNode.innerHTML = `
                     <div class="node-circle"><i class="fa-solid fa-file-code"></i></div>
                     <span class="node-label">${pathLabel}</span>
-                    <span class="node-url">${parsedSub.pathname}</span>
+                    <span class="node-url">${parsedSub.pathname || '/'}</span>
                 `;
                 crawlerMapRoot.appendChild(subNode);
             });
         } else {
             // Just add one warning/info node if SPA or only single page crawled
-            const connector = document.createElement('div');
-            connector.className = 'map-connection';
-            crawlerMapRoot.appendChild(connector);
+            if (!isGridLayout) {
+                const connector = document.createElement('div');
+                connector.className = 'map-connection';
+                crawlerMapRoot.appendChild(connector);
+            }
 
             const singleNode = document.createElement('div');
             singleNode.className = 'map-node subpage';
@@ -556,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             typingBubble.remove();
-            appendChatBubble('assistant', `⚠️ **Error:** ${error.message}. Make sure your Gemini API Key is entered correctly.`);
+            appendChatBubble('assistant', `⚠️ **Error:** ${error.message}. Make sure your Groq API Key is entered correctly.`);
             showToast(error.message, 'error');
         }
     }
