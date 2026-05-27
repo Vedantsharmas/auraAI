@@ -8,8 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Style -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -22,7 +20,12 @@
             <!-- Header Section -->
             <header class="outfit-header">
                 <a href="/" class="logo">
-                    <span class="logo-symbol">++</span>
+                    <span class="logo-symbol">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 1.6rem; height: 1.6rem; display: inline-block; vertical-align: middle; margin-right: 4px;">
+                            <path d="M12 2L19 9L12 16L5 9L12 2Z"></path>
+                            <path d="M12 6L16 10L12 14L8 10L12 6Z" fill="currentColor" opacity="0.3"></path>
+                        </svg>
+                    </span>
                     <span class="logo-text">AURA</span>
                 </a>
                 
@@ -30,11 +33,10 @@
                     <span class="nav-item">Analyzer</span>
                     <span class="nav-item">Consultant</span>
                     
-                    <!-- Color Dots: The red dot serves as the API Status and Toggle button -->
-                    <div class="theme-dots" id="toggleApiBtn" title="Configure API Key">
-                        <span class="dot dot-red" id="apiKeyStatusDot"></span>
-                        <span class="dot dot-white"></span>
-                        <span class="dot dot-black"></span>
+                    <!-- API Status Badge -->
+                    <div class="api-status-badge" id="toggleApiBtn" title="Configure API Key">
+                        <span class="status-indicator-dot" id="apiKeyStatusDot"></span>
+                        <span class="badge-text">API Status</span>
                     </div>
                 </div>
             </header>
@@ -53,7 +55,7 @@
                     </div>
                     <div class="drawer-actions">
                         <button class="btn-link text-danger" id="clearApiKeyBtn">Clear Saved Key</button>
-                        <a href="https://console.groq.com/keys" target="_blank" class="api-link">Get Free Key <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                        <a href="https://console.groq.com/keys" target="_blank" class="api-link">Get Free Key</a>
                     </div>
                 </div>
             </div>
@@ -85,7 +87,7 @@
                         <span class="meta-label">UTILITIES</span>
                         <div class="meta-links">
                             <span class="meta-link-desc">Groq API required for AI.</span>
-                            <a href="https://console.groq.com/keys" target="_blank" class="meta-link">Get API Key <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                            <a href="https://console.groq.com/keys" target="_blank" class="meta-link">Get API Key</a>
                         </div>
                     </div>
                     <div class="meta-col text-right">
@@ -101,11 +103,11 @@
                 <div class="search-section">
                     <form class="search-form" id="searchForm">
                         <div class="input-wrapper">
-                            <i class="fa-solid fa-globe search-icon"></i>
+                            <span class="crawl-label">URL:</span>
                             <input type="text" id="urlInput" placeholder="ENTER WEBSITE URL TO AUDIT (e.g., vihilinfotech.com)" required>
                         </div>
                         <div class="crawl-limit-wrapper">
-                            <i class="fa-solid fa-spider crawl-icon" title="Scan Depth"></i>
+                            <span class="crawl-label">DEPTH:</span>
                             <select id="maxPagesSelect" title="Scan Depth">
                                 <option value="3">Quick Scan (3 pgs)</option>
                                 <option value="10">Standard (10 pgs)</option>
@@ -115,7 +117,6 @@
                         </div>
                         <button type="submit" class="btn-audit" id="analyzeBtn">
                             <span>AUDIT WEBSITE</span>
-                            <i class="fa-solid fa-arrow-right"></i>
                         </button>
                     </form>
 
@@ -124,42 +125,6 @@
                         <button type="button" class="example-btn" data-url="https://www.vihilinfotech.com">VIHIL INFOTECH</button>
                         <button type="button" class="example-btn" data-url="https://news.ycombinator.com">HACKER NEWS</button>
                         <button type="button" class="example-btn" data-url="https://react.dev">REACT.DEV</button>
-                    </div>
-                </div>
-
-                <!-- Showcase Product Grid (4 Columns) -->
-                <div class="showcase-grid">
-                    <div class="showcase-card">
-                        <div class="image-container">
-                            <img src="/static/images/showcase_1.png" alt="Showcase Model Neck">
-                        </div>
-                        <div class="showcase-caption">
-                            <span>; time™ (off)</span>
-                        </div>
-                    </div>
-                    <div class="showcase-card">
-                        <div class="image-container">
-                            <img src="/static/images/showcase_2.png" alt="Showcase Cap">
-                        </div>
-                        <div class="showcase-caption">
-                            <span>++ CAP</span>
-                        </div>
-                    </div>
-                    <div class="showcase-card">
-                        <div class="image-container">
-                            <img src="/static/images/showcase_3.png" alt="Showcase Sweatshirt">
-                        </div>
-                        <div class="showcase-caption">
-                            <span>++ SWEATSHIRT</span>
-                        </div>
-                    </div>
-                    <div class="showcase-card">
-                        <div class="image-container">
-                            <img src="/static/images/showcase_4.png" alt="Showcase Backpack">
-                        </div>
-                        <div class="showcase-caption">
-                            <span>++ PACK</span>
-                        </div>
                     </div>
                 </div>
 
@@ -175,19 +140,19 @@
                 
                 <div class="progress-steps">
                     <div class="progress-step active" id="step1">
-                        <span class="step-num"><i class="fa-solid fa-check"></i>1</span>
+                        <span class="step-num">✓ 1</span>
                         <span class="step-label">Fetch HTML</span>
                     </div>
                     <div class="progress-step" id="step2">
-                        <span class="step-num"><i class="fa-solid fa-check"></i>2</span>
+                        <span class="step-num">✓ 2</span>
                         <span class="step-label">Extract Content</span>
                     </div>
                     <div class="progress-step" id="step3">
-                        <span class="step-num"><i class="fa-solid fa-check"></i>3</span>
+                        <span class="step-num">✓ 3</span>
                         <span class="step-label">AI Analysis</span>
                     </div>
                     <div class="progress-step" id="step4">
-                        <span class="step-num"><i class="fa-solid fa-check"></i>4</span>
+                        <span class="step-num">✓ 4</span>
                         <span class="step-label">Formulate Costs</span>
                     </div>
                 </div>
@@ -201,7 +166,6 @@
                     <!-- Overview Card -->
                     <div class="card card-overview">
                         <div class="card-header">
-                            <i class="fa-solid fa-circle-info card-icon"></i>
                             <h2>Overview</h2>
                         </div>
                         <div class="card-body">
@@ -218,10 +182,22 @@
                         </div>
                     </div>
 
+                    <!-- Crawled Pages Card -->
+                    <div class="card card-crawled-pages">
+                        <div class="card-header">
+                            <h2>Crawled Pages Audit</h2>
+                        </div>
+                        <div class="card-body">
+                            <p class="section-instruction" style="margin-bottom: 15px;">List of discovered internal pages. Select any page to run a detailed SEO & UX audit.</p>
+                            <div class="crawled-pages-list" id="crawledPagesList">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Crawled Map Card -->
                     <div class="card card-crawler">
                         <div class="card-header">
-                            <i class="fa-solid fa-network-wired card-icon"></i>
                             <h2>Crawled Map & Links</h2>
                         </div>
                         <div class="card-body">
@@ -237,7 +213,6 @@
                     <!-- Services Card -->
                     <div class="card card-services">
                         <div class="card-header">
-                            <i class="fa-solid fa-layer-group card-icon"></i>
                             <h2>Core Services & Functions</h2>
                         </div>
                         <div class="card-body">
@@ -250,7 +225,6 @@
                     <!-- Tech Stack Card -->
                     <div class="card card-tech">
                         <div class="card-header">
-                            <i class="fa-solid fa-cubes card-icon"></i>
                             <h2>Tech Stack Architecture</h2>
                         </div>
                         <div class="card-body">
@@ -263,9 +237,8 @@
                     <!-- Cost Estimation Card -->
                     <div class="card card-cost">
                         <div class="card-header">
-                            <i class="fa-solid fa-money-bill-trend-up card-icon"></i>
                             <h2>Clone Build Cost Estimate</h2>
-                            <span class="premium-badge"><i class="fa-solid fa-crown"></i> High Factual Accuracy</span>
+                            <span class="premium-badge">High Factual Accuracy</span>
                         </div>
                         <div class="card-body">
                             <div class="cost-summary">
@@ -300,7 +273,6 @@
                     <!-- Audience & Improvements -->
                     <div class="card card-suggestions">
                         <div class="card-header">
-                            <i class="fa-solid fa-chart-line card-icon"></i>
                             <h2>Audience & Suggestions</h2>
                         </div>
                         <div class="card-body">
@@ -327,16 +299,21 @@
                 <div class="chat-panel">
                     <div class="chat-header">
                         <div class="chat-bot-avatar">
-                            <i class="fa-solid fa-robot"></i>
+                            <span class="bot-initials">AI</span>
                             <span class="status-indicator online"></span>
                         </div>
                         <div class="chat-title-info">
                             <h3>AI Tech Consultant</h3>
                             <p>Ask about architecture, costs, or scaling</p>
                         </div>
-                        <button class="btn-clear-chat" id="clearChatBtn" title="Reset Chat">
-                            <i class="fa-solid fa-rotate-right"></i>
-                        </button>
+                        <div class="chat-actions-wrapper" style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+                            <button class="btn-clear-chat" id="clearChatBtn" title="Reset Chat">
+                                Reset
+                            </button>
+                            <button class="btn-close-chat" id="closeChatBtn" title="Close Chat">
+                                Close
+                            </button>
+                        </div>
                     </div>
 
                     <div class="chat-messages" id="chatMessages">
@@ -354,18 +331,40 @@
                     <div class="chat-input-area">
                         <textarea id="chatInput" placeholder="Ask details about code clone, security, stack choices, pricing..." rows="1"></textarea>
                         <button id="sendChatBtn" class="btn-send-chat" disabled>
-                            <i class="fa-solid fa-paper-plane"></i>
+                            Send
                         </button>
                     </div>
                 </div>
+
+                <!-- Chat Toggle FAB for Mobile -->
+                <button class="chat-toggle-btn" id="chatToggleBtn" title="Open Consultant Chat">
+                    <span>Chat</span>
+                    <span class="status-indicator online"></span>
+                </button>
             </main>
 
         </div>
     </div>
 
+    <!-- Page Analysis Modal -->
+    <div id="pageAnalysisModal" class="modal hidden">
+        <div id="modalBackdrop" class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-wrapper">
+                    <h2 id="modalPageTitle">Subpage Audit</h2>
+                </div>
+                <button class="btn-close" id="closeModalBtn">Close</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content injected dynamically -->
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div class="toast hidden" id="toast">
-        <i class="fa-solid fa-circle-exclamation toast-icon"></i>
+        <span class="toast-status"></span>
         <span class="toast-message" id="toastMessage">An error occurred</span>
     </div>
 

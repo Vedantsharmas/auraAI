@@ -43,9 +43,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendChatBtn = document.getElementById('sendChatBtn');
     const clearChatBtn = document.getElementById('clearChatBtn');
     const quickQuestionsContainer = document.getElementById('quickQuestionsContainer');
+    const chatToggleBtn = document.getElementById('chatToggleBtn');
+    const closeChatBtn = document.getElementById('closeChatBtn');
+    const chatPanel = document.querySelector('.chat-panel');
     
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
+
+    // Subpage Audit DOM Elements
+    const crawledPagesList = document.getElementById('crawledPagesList');
+    const pageAnalysisModal = document.getElementById('pageAnalysisModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const modalPageTitle = document.getElementById('modalPageTitle');
+    const modalBody = document.getElementById('modalBody');
 
     // App State
     let localApiKey = localStorage.getItem('groq_api_key') || '';
@@ -102,6 +113,38 @@ document.addEventListener('DOMContentLoaded', () => {
             searchForm.dispatchEvent(new Event('submit'));
         });
     });
+
+    // Modal Close Event Listeners
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            pageAnalysisModal.classList.add('hidden');
+        });
+    }
+    if (modalBackdrop) {
+        modalBackdrop.addEventListener('click', () => {
+            pageAnalysisModal.classList.add('hidden');
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && pageAnalysisModal && !pageAnalysisModal.classList.contains('hidden')) {
+            pageAnalysisModal.classList.add('hidden');
+        }
+    });
+
+    // Chat Panel Responsive Toggle Event Listeners
+    if (chatToggleBtn && chatPanel) {
+        chatToggleBtn.addEventListener('click', () => {
+            chatPanel.classList.toggle('open');
+            if (chatPanel.classList.contains('open') && chatInput) {
+                chatInput.focus();
+            }
+        });
+    }
+    if (closeChatBtn && chatPanel) {
+        closeChatBtn.addEventListener('click', () => {
+            chatPanel.classList.remove('open');
+        });
+    }
 
     // Form Submit (Analyze Website)
     searchForm.addEventListener('submit', async (e) => {
@@ -346,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
         homeNode.className = 'map-node root';
         const parsedBase = new URL(data.url);
         homeNode.innerHTML = `
-            <div class="node-circle"><i class="fa-solid fa-house"></i></div>
+            <div class="node-circle">H</div>
             <span class="node-label">Homepage</span>
             <span class="node-url">${parsedBase.hostname}</span>
         `;
@@ -380,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!pathLabel) pathLabel = 'Subpage';
 
                 subNode.innerHTML = `
-                    <div class="node-circle"><i class="fa-solid fa-file-code"></i></div>
+                    <div class="node-circle">P</div>
                     <span class="node-label">${pathLabel}</span>
                     <span class="node-url">${parsedSub.pathname || '/'}</span>
                 `;
@@ -397,13 +440,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const singleNode = document.createElement('div');
             singleNode.className = 'map-node subpage';
             singleNode.innerHTML = `
-                <div class="node-circle" style="border-color: var(--accent-tertiary); color: var(--accent-tertiary);">
-                    <i class="fa-solid fa-circle-nodes"></i>
-                </div>
+                <div class="node-circle" style="border-color: var(--accent-tertiary); color: var(--accent-tertiary);">S</div>
                 <span class="node-label">Single-Page SPA</span>
                 <span class="node-url">Dynamic Router</span>
             `;
             crawlerMapRoot.appendChild(singleNode);
+        }
+
+        // Render Crawled Subpages list under Left Column
+        if (crawledPagesList) {
+            crawledPagesList.innerHTML = '';
+            if (data.crawled_pages && data.crawled_pages.length > 0) {
+                data.crawled_pages.forEach(pageUrl => {
+                    const pageItem = document.createElement('div');
+                    pageItem.className = 'crawled-page-item';
+                    
+                    let displayUrl = pageUrl;
+                    try {
+                        const parsedRoot = new URL(data.url);
+                        const parsedPage = new URL(pageUrl);
+                        if (parsedRoot.hostname === parsedPage.hostname) {
+                            displayUrl = parsedPage.pathname + parsedPage.search + parsedPage.hash;
+                            if (displayUrl === '') displayUrl = '/';
+                        }
+                    } catch (err) {}
+
+                    let displayTitle = displayUrl.replace(/^\/|\/$/g, '');
+                    if (!displayTitle) displayTitle = 'Home Page';
+                    else displayTitle = displayTitle.charAt(0).toUpperCase() + displayTitle.slice(1);
+
+                    pageItem.innerHTML = `
+                        <div class="crawled-page-info">
+                            <span class="crawled-page-title">${displayTitle}</span>
+                            <span class="crawled-page-url">${displayUrl}</span>
+                        </div>
+                        <button class="btn-analyze-page" data-url="${pageUrl}">
+                            Analyze Page
+                        </button>
+                    `;
+                    
+                    const btn = pageItem.querySelector('.btn-analyze-page');
+                    btn.addEventListener('click', () => analyzeSpecificPage(data.url, pageUrl));
+                    
+                    crawledPagesList.appendChild(pageItem);
+                });
+            } else {
+                crawledPagesList.innerHTML = '<p class="site-overview">No subpages crawled.</p>';
+            }
         }
 
         // Render Services
@@ -581,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appendChatBubble('user', text);
 
         // Append Typing Bubble
-        const typingBubble = appendChatBubble('assistant', '<i class="fa-solid fa-ellipsis fa-fade"></i> AI is thinking...');
+        const typingBubble = appendChatBubble('assistant', 'AI is thinking...');
 
         try {
             const response = await fetch('/api/chat', {
@@ -615,7 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             typingBubble.remove();
-            appendChatBubble('assistant', `⚠️ **Error:** ${error.message}. Make sure your Groq API Key is entered correctly.`);
+            appendChatBubble('assistant', `Error: ${error.message}. Make sure your Groq API Key is entered correctly.`);
             showToast(error.message, 'error');
         }
     }
@@ -682,23 +765,156 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     }
 
+    // Call subpage analysis API and open modal
+    async function analyzeSpecificPage(parentUrl, pageUrl) {
+        pageAnalysisModal.classList.remove('hidden');
+        modalPageTitle.textContent = 'Subpage Audit';
+        modalBody.innerHTML = `
+            <div class="modal-loading">
+                <div class="brutalist-loader"></div>
+                <span style="display: block; margin-top: 15px;">AI is conducting SEO & UX audit for this page...</span>
+            </div>
+        `;
+
+        try {
+            const response = await fetch('/api/analyze-page', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    parent_url: parentUrl,
+                    page_url: pageUrl,
+                    apiKey: localApiKey
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to analyze page');
+            }
+
+            renderSubpageAnalysis(result);
+
+        } catch (error) {
+            modalBody.innerHTML = `
+                <div class="modal-loading" style="color: var(--accent-danger)">
+                    <span style="font-size: 2rem; font-weight: bold;">[!]</span>
+                    <span style="margin-top: 10px; text-align: center;">
+                        <strong>Audit Failed</strong><br>
+                        <small style="opacity: 0.85;">${error.message}</small>
+                    </span>
+                </div>
+            `;
+        }
+    }
+
+    // Render page audit report in modal
+    function renderSubpageAnalysis(result) {
+        modalPageTitle.textContent = result.page_title || 'Subpage Audit';
+
+        let tipsHtml = '';
+        if (result.seo_analysis?.optimization_tips && result.seo_analysis.optimization_tips.length > 0) {
+            tipsHtml = `
+                <div class="modal-section">
+                    <h3>SEO Recommendations</h3>
+                    <ul class="modal-list tips-list">
+                        ${result.seo_analysis.optimization_tips.map(tip => `<li>${tip}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        let improvementsHtml = '';
+        if (result.actionable_improvements && result.actionable_improvements.length > 0) {
+            improvementsHtml = `
+                <div class="modal-section">
+                    <h3>Page Enhancements</h3>
+                    <ul class="modal-list improvements-list-modal">
+                        ${result.actionable_improvements.map(imp => `<li>${imp}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        modalBody.innerHTML = `
+            <div class="modal-section" style="margin-top: -0.5rem;">
+                <a href="${result.page_url}" target="_blank" class="site-url" style="text-decoration: underline; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    ${result.page_url}
+                </a>
+            </div>
+
+            <div class="modal-section">
+                <h3>Page Summary & Purpose</h3>
+                <p>${result.summary || 'No summary generated.'}</p>
+            </div>
+
+            <div class="audit-grid">
+                <!-- Headings Audit Box -->
+                <div class="audit-box">
+                    <div class="audit-box-header">
+                        <span class="audit-box-title">
+                            Headings Hierarchy
+                        </span>
+                        <span class="badge-status ${result.headings_audit?.hierarchy_valid ? 'valid' : 'invalid'}">
+                            ${result.headings_audit?.hierarchy_valid ? 'Valid' : 'Issues'}
+                        </span>
+                    </div>
+                    <p class="audit-box-desc">${result.headings_audit?.critique || 'No critique provided.'}</p>
+                </div>
+
+                <!-- SEO Audit Box -->
+                <div class="audit-box">
+                    <div class="audit-box-header">
+                        <span class="audit-box-title">
+                            Search Meta
+                        </span>
+                        <span class="badge-status ${(result.seo_analysis?.title_length_ok && result.seo_analysis?.meta_length_ok) ? 'valid' : 'invalid'}">
+                            ${(result.seo_analysis?.title_length_ok && result.seo_analysis?.meta_length_ok) ? 'Optimal' : 'Needs Fix'}
+                        </span>
+                    </div>
+                    <p class="audit-box-desc">${result.seo_analysis?.meta_critique || 'No metadata critique provided.'}</p>
+                    <div class="site-overview" style="font-size: 0.8rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div>Title Length: ${result.seo_analysis?.title_length_ok ? '✓ Optimal' : '⚠️ Non-optimal'}</div>
+                        <div>Meta Desc Length: ${result.seo_analysis?.meta_length_ok ? '✓ Optimal' : '⚠️ Non-optimal'}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>UX & Copywriting Review</h3>
+                <p>${result.ux_copy_critique || 'No copy critique provided.'}</p>
+            </div>
+
+            ${tipsHtml}
+            ${improvementsHtml}
+        `;
+    }
+
     // Toast system
     function showToast(message, type = 'error') {
         toastMessage.textContent = message;
         
-        const icon = toast.querySelector('.toast-icon');
+        const statusSpan = toast.querySelector('.toast-status');
         if (type === 'success') {
             toast.style.borderColor = 'var(--accent-success)';
-            icon.className = 'fa-solid fa-circle-check toast-icon';
-            icon.style.color = 'var(--accent-success)';
+            if (statusSpan) {
+                statusSpan.textContent = '[SUCCESS]';
+                statusSpan.style.color = 'var(--accent-success)';
+            }
         } else if (type === 'info') {
             toast.style.borderColor = 'var(--accent-tertiary)';
-            icon.className = 'fa-solid fa-circle-info toast-icon';
-            icon.style.color = 'var(--accent-tertiary)';
+            if (statusSpan) {
+                statusSpan.textContent = '[INFO]';
+                statusSpan.style.color = 'var(--accent-tertiary)';
+            }
         } else {
             toast.style.borderColor = 'var(--accent-danger)';
-            icon.className = 'fa-solid fa-circle-exclamation toast-icon';
-            icon.style.color = 'var(--accent-danger)';
+            if (statusSpan) {
+                statusSpan.textContent = '[ERROR]';
+                statusSpan.style.color = 'var(--accent-danger)';
+            }
         }
 
         toast.classList.remove('hidden');

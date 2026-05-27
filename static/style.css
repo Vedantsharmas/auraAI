@@ -1,18 +1,18 @@
 /* =============================================================
-   AURA AI — Brutalist Design System & OUTFIT Aesthetics
+   AURA AI — Royal Navy & Gold Redesign
    ============================================================= */
 
 :root {
-    /* Color Palette */
-    --color-brand-red: #FF0900;    /* Vibrant Outfit Red */
-    --color-cream-bg: #F4F0EA;     /* Cream background */
-    --color-white: #FFFFFF;
-    --color-dark-charcoal: #111111;/* Main text color for readability */
+    /* Color Palette - Dark Purple Theme */
+    --color-brand-red: #c084fc;    /* Vibrant Amethyst Purple */
+    --color-cream-bg: #0f091f;     /* Deep Violet Container Backdrop */
+    --color-white: #180e30;        /* Lighter Purple Card Background */
+    --color-dark-charcoal: #f3e8ff;/* Soft Lilac-White Text */
     
     /* Dynamic Accent Colors for Toasts and Crawler Map */
-    --accent-success: #22c55e;
-    --accent-tertiary: #10b981;
-    --accent-danger: #FF0900;
+    --accent-success: #22c55e;     /* Glowing Green */
+    --accent-tertiary: #c084fc;    /* Purple */
+    --accent-danger: #ef4444;      /* Glowing Red */
     
     /* Typography */
     --font-primary: 'Outfit', sans-serif;
@@ -31,8 +31,8 @@
 
 body.brutalist-theme {
     font-family: var(--font-primary);
-    background-color: var(--color-brand-red);
-    color: var(--color-brand-red);
+    background-color: #0a0515;
+    color: var(--color-dark-charcoal);
     min-height: 100vh;
     padding: 0;
     margin: 0;
@@ -52,11 +52,12 @@ body.brutalist-theme {
     background: var(--color-brand-red);
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-dark-charcoal);
+    background: #ffffff;
 }
 
 /* Layout Containers */
 .outer-bezel {
+    background-color: #0a0515;
     padding: 30px 20px;
     display: flex;
     justify-content: center;
@@ -72,7 +73,8 @@ body.brutalist-theme {
     border-radius: 12px;
     padding: 40px;
     position: relative;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(192, 132, 252, 0.15);
 }
 
 /* Header Styles */
@@ -118,39 +120,44 @@ body.brutalist-theme {
     cursor: default;
 }
 
-/* Theme Dots (Red, White, Black) */
-.theme-dots {
+/* API Status Badge */
+.api-status-badge {
     display: flex;
-    gap: 8px;
-    cursor: pointer;
     align-items: center;
-    padding: 5px;
-}
-
-.dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    display: inline-block;
-    border: 1px solid var(--color-brand-red);
-    transition: transform var(--transition-fast);
-}
-
-.dot-red {
-    background-color: var(--color-brand-red);
-}
-
-.dot-red.active {
-    box-shadow: 0 0 0 2px var(--color-cream-bg), 0 0 0 4px var(--color-brand-red);
-}
-
-.dot-white {
+    gap: 8px;
+    border: 1.5px solid var(--color-brand-red);
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
     background-color: var(--color-white);
+    transition: all var(--transition-fast);
 }
 
-.dot-black {
-    background-color: var(--color-dark-charcoal);
-    border-color: var(--color-dark-charcoal);
+.api-status-badge:hover {
+    background-color: rgba(192, 132, 252, 0.1);
+    transform: translateY(-1px);
+}
+
+.status-indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #ef4444; /* Inactive/missing red */
+    box-shadow: 0 0 8px #ef4444;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-indicator-dot.active {
+    background-color: #22c55e; /* Active green */
+    box-shadow: 0 0 8px #22c55e;
+}
+
+.badge-text {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-dark-charcoal);
 }
 
 .theme-dots:hover .dot {
@@ -284,20 +291,11 @@ body.brutalist-theme {
 }
 
 .registered-symbol {
-    font-size: 0.15em;
-    font-weight: 600;
+    font-size: 0.25em;
     vertical-align: super;
-    margin-left: 8px;
-    border: 1.5px solid var(--color-brand-red);
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.4em;
-    height: 1.4em;
-    line-height: 1;
-    position: relative;
-    top: -0.3em;
+    margin-left: 6px;
+    color: var(--color-brand-red);
+    font-weight: 400;
 }
 
 /* Dividers */
@@ -375,13 +373,17 @@ body.brutalist-theme {
 
 /* Search Bar Section */
 .search-section {
-    margin: 30px 0 40px 0;
+    margin: 30px auto 40px auto;
+    max-width: 600px;
+    width: 100%;
 }
 
 .search-form {
     display: flex;
-    border: 2px solid var(--color-brand-red);
+    border: 1.5px solid var(--color-brand-red);
     background-color: var(--color-white);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .input-wrapper {
@@ -396,14 +398,18 @@ body.brutalist-theme {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 15px;
-    border-left: 2px solid var(--color-brand-red);
+    padding: 0 20px;
+    border-left: 1.5px solid var(--color-brand-red);
     background-color: var(--color-white);
 }
 
-.crawl-icon {
+.crawl-label {
+    font-size: 0.75rem;
+    font-weight: 800;
     color: var(--color-brand-red);
-    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
 #maxPagesSelect {
@@ -420,14 +426,10 @@ body.brutalist-theme {
 }
 
 #maxPagesSelect option {
-    background-color: var(--color-cream-bg);
+    background-color: var(--color-white);
     color: var(--color-dark-charcoal);
     font-weight: 700;
     text-transform: uppercase;
-}
-
-.search-icon {
-    font-size: 1.1rem;
 }
 
 .search-form input {
@@ -443,7 +445,7 @@ body.brutalist-theme {
 }
 
 .search-form input::placeholder {
-    color: #999;
+    color: rgba(244, 240, 234, 0.4);
 }
 
 .btn-audit {
@@ -593,7 +595,7 @@ body.brutalist-theme {
     left: 10%;
     right: 10%;
     height: 2px;
-    background-color: #E6E2D9;
+    background-color: rgba(192, 132, 252, 0.2);
     z-index: 1;
 }
 
@@ -610,8 +612,8 @@ body.brutalist-theme {
     height: 36px;
     border-radius: 50%;
     background-color: var(--color-white);
-    border: 2px solid #E6E2D9;
-    color: #999;
+    border: 2px solid rgba(192, 132, 252, 0.3);
+    color: rgba(244, 240, 234, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1288,25 +1290,28 @@ body.brutalist-theme {
     background-color: var(--color-brand-red);
     color: var(--color-cream-bg);
     border: none;
-    width: 40px;
-    height: 40px;
+    padding: 10px 20px;
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 1.1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
     transition: background-color var(--transition-fast);
+    font-family: inherit;
 }
 
 .btn-send-chat:disabled {
-    background-color: #E6E2D9;
-    color: #999;
+    background-color: rgba(197, 160, 62, 0.15);
+    color: rgba(244, 240, 234, 0.3);
     cursor: not-allowed;
 }
 
 .btn-send-chat:not(:disabled):hover {
     background-color: var(--color-dark-charcoal);
+    color: var(--color-white);
 }
 
 /* Toast Notifications */
@@ -1345,14 +1350,96 @@ body.brutalist-theme {
     color: var(--color-dark-charcoal);
 }
 
+.chat-toggle-btn {
+    display: none;
+}
+
+.btn-close-chat {
+    display: none;
+}
+
 /* Responsive Redesign Adjustments */
 @media (max-width: 1024px) {
     .dashboard {
         grid-template-columns: 1fr;
     }
     .chat-panel {
-        height: 60vh;
-        position: static;
+        position: fixed;
+        bottom: 95px;
+        right: 25px;
+        width: 380px;
+        max-width: calc(100vw - 50px);
+        height: 550px;
+        max-height: 70vh;
+        z-index: 1005;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        border: 1.5px solid var(--color-brand-red);
+        border-radius: 12px;
+        background-color: var(--color-white);
+        transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s ease;
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+        pointer-events: none;
+    }
+    .chat-panel.open {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .chat-toggle-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        z-index: 1004;
+        background-color: var(--color-cream-bg);
+        border: 1.5px solid var(--color-brand-red);
+        color: var(--color-brand-red);
+        font-family: var(--font-primary);
+        font-weight: 800;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        padding: 10px 20px;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        transition: all var(--transition-fast);
+    }
+    .chat-toggle-btn:hover {
+        background-color: var(--color-brand-red);
+        color: var(--color-cream-bg);
+        transform: scale(1.05);
+    }
+    .chat-toggle-btn .status-indicator {
+        position: relative;
+        bottom: auto;
+        right: auto;
+        display: inline-block;
+        border: none;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #22c55e;
+    }
+    .btn-close-chat {
+        display: inline-block;
+        background: none;
+        border: 1.5px solid var(--color-brand-red);
+        color: var(--color-brand-red);
+        font-family: inherit;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        padding: 5px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+    .btn-close-chat:hover {
+        background: var(--color-brand-red);
+        color: var(--color-cream-bg);
     }
     .metadata-grid {
         grid-template-columns: 1fr 1fr;
@@ -1394,12 +1481,321 @@ body.brutalist-theme {
         padding: 15px;
         justify-content: center;
     }
-    .showcase-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* Utility Hidden state overrides */
 .hidden {
     display: none !important;
+}
+
+/* ==========================================================================
+   Crawled Pages List & Subpage Audit Styles
+   ========================================================================== */
+.crawled-pages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.crawled-page-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1.5px solid var(--color-brand-red);
+    padding: 0.85rem 1.25rem;
+    border-radius: 8px;
+    transition: var(--transition-normal);
+}
+.crawled-page-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: #ffffff;
+}
+.crawled-page-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    max-width: 70%;
+    overflow: hidden;
+}
+.crawled-page-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-dark-charcoal);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.crawled-page-url {
+    font-size: 0.75rem;
+    color: var(--color-brand-red);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.btn-analyze-page {
+    background: rgba(192, 132, 252, 0.1);
+    border: 1.5px solid var(--color-brand-red);
+    color: var(--color-brand-red);
+    padding: 0.4rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    white-space: nowrap;
+}
+.btn-analyze-page:hover {
+    background: var(--color-brand-red);
+    color: var(--color-cream-bg);
+}
+
+/* ==========================================================================
+   Page Analysis Modal
+   ========================================================================== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    opacity: 1;
+    transition: opacity var(--transition-normal);
+}
+.modal.hidden {
+    display: none !important;
+    opacity: 0;
+}
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(6, 11, 24, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1;
+}
+.modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 800px;
+    max-height: 85vh;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    z-index: 2;
+    overflow: hidden;
+    background-color: var(--color-white);
+    border: 1.5px solid var(--color-brand-red);
+    animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 2rem;
+    border-bottom: 1.5px solid var(--color-brand-red);
+    background: var(--color-cream-bg);
+}
+.modal-title-wrapper h2 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--color-brand-red);
+    text-transform: uppercase;
+}
+.modal-body {
+    padding: 2rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Modal Body Content Structuring */
+.modal-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.modal-section h3 {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--color-brand-red);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.25rem;
+}
+.modal-section p {
+    font-size: 0.92rem;
+    color: var(--color-dark-charcoal);
+    line-height: 1.6;
+}
+
+/* Audit Grid & Boxes */
+.audit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+@media (max-width: 768px) {
+    .audit-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.audit-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1.5px solid var(--color-brand-red);
+    padding: 1.25rem;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.audit-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.audit-box-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-dark-charcoal);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+}
+.badge-status {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.badge-status.valid {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+.badge-status.invalid {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+.audit-box-desc {
+    font-size: 0.85rem;
+    color: var(--color-dark-charcoal);
+    line-height: 1.5;
+    opacity: 0.85;
+}
+
+/* Bullet list inside modal */
+.modal-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.modal-list li {
+    position: relative;
+    padding-left: 1.5rem;
+    font-size: 0.88rem;
+    color: var(--color-dark-charcoal);
+    line-height: 1.5;
+}
+.modal-list li::before {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 0.88rem;
+    font-weight: bold;
+}
+.modal-list.tips-list li::before {
+    content: '[i]';
+    color: var(--color-brand-red);
+}
+.modal-list.improvements-list-modal li::before {
+    content: '[+]';
+    color: var(--color-brand-red);
+}
+
+.modal-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    gap: 1.25rem;
+}
+.modal-loading span {
+    font-size: 0.95rem;
+    color: var(--color-dark-charcoal);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.bot-initials {
+    font-weight: 900;
+    font-size: 1rem;
+    color: var(--color-brand-red);
+}
+.btn-send-chat {
+    font-family: inherit;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+.btn-clear-chat {
+    background: none;
+    border: 1.5px solid var(--color-brand-red);
+    color: var(--color-brand-red);
+    font-family: inherit;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.btn-clear-chat:hover {
+    background: var(--color-brand-red);
+    color: var(--color-cream-bg);
+}
+.btn-close {
+    background: none;
+    border: 1.5px solid var(--color-brand-red);
+    color: var(--color-brand-red);
+    font-family: inherit;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.btn-close:hover {
+    background: var(--color-brand-red);
+    color: var(--color-cream-bg);
+}
+.toast-status {
+    font-weight: 800;
+    font-size: 0.85rem;
 }
